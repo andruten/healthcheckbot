@@ -6,6 +6,10 @@ from telegram.ext import Updater, CallbackContext, CommandHandler
 
 from models import ServiceManager, Service
 
+abspath = os.path.abspath(__file__)
+dname = os.path.dirname(abspath)
+os.chdir(dname)
+
 load_dotenv()
 
 # Enable logging
