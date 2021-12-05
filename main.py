@@ -8,13 +8,14 @@ from telegram.ext import Updater, CallbackContext
 from models import Service
 from persistence import read_services
 
+load_dotenv()
+
 # Enable logging
+LOG_LEVEL = logging.DEBUG if os.environ.get('LOG_LEVEL') == 'DEBUG' else logging.INFO
 
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=LOG_LEVEL
 )
-
-load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -31,32 +32,6 @@ def error(update, context):
     logger.warning('Update "%s" caused error "%s"', update, context.error)
 
 
-def check_socket_connection(service: Service, **kwargs) -> bool:
-    a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    location = (service.domain, service.port)
-    result_of_check = a_socket.connect_ex(location)
-    return bool(result_of_check == 0)
-
-
-def check_request_connection(service: Service, timeout: int = 3, **kwargs) -> bool:
-    protocol = 'https' if service.port == 443 else 'http'
-    url = f'{protocol}://{service.domain}:{service.port}'
-    try:
-        response = requests.head(url, timeout=timeout)
-    except requests.exceptions.RequestException:
-        return False
-    else:
-        if response.status_code >= 400:
-            return True
-    return True
-
-
-CONNECTIONS = {
-    'socket': check_socket_connection,
-    'request': check_request_connection,
-}
-
-
 def check_all_services(context: CallbackContext):
     services = read_services()
     failing_services = []
@@ -64,12 +39,12 @@ def check_all_services(context: CallbackContext):
         service = Service(**service_data)
         if not service.enabled:
             continue
-        service_response = CONNECTIONS[service.service_type](service)
+        service_response = service.backend.check()
         if not service_response:
-            failing_services.append(service_data)
+            failing_services.append(service)
     if failing_services:
         for failing_service in failing_services:
-            text = f'{failing_service["name"]} is down <{failing_service["domain"]}:{failing_service["port"]}>'
+            text = f'{failing_service} is down!'
             context.bot.send_message(chat_id=CHAT_ID, text=text)
 
 
