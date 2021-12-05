@@ -1,12 +1,10 @@
 import logging
 import os
-import socket
-import requests
 from dotenv import load_dotenv
-from telegram.ext import Updater, CallbackContext
+from telegram import Update
+from telegram.ext import Updater, CallbackContext, CommandHandler
 
-from models import Service
-from persistence import read_services
+from models import ServiceManager, Service
 
 load_dotenv()
 
@@ -33,12 +31,9 @@ def error(update, context):
 
 
 def check_all_services(context: CallbackContext):
-    services = read_services()
+    services = ServiceManager().fetch_active()
     failing_services = []
-    for service_data in services:
-        service = Service(**service_data)
-        if not service.enabled:
-            continue
+    for service in services:
         service_response = service.backend.check()
         if not service_response:
             failing_services.append(service)
@@ -48,11 +43,47 @@ def check_all_services(context: CallbackContext):
             context.bot.send_message(chat_id=CHAT_ID, text=text)
 
 
+def add(update: Update, context: CallbackContext) -> None:
+    # Validate arguments
+    if len(context.args) != 4:
+        update.message.reply_text('Please, use /add <service_type> <name> <domain> <port>')
+        return
+    service_type, name, domain, port = context.args
+    if service_type.lower() not in Service.BACKENDS.keys():
+        update.message.reply_text(f'service_type must be {", ".join(Service.BACKENDS.keys())}')
+        return
+    try:
+        port = int(port)
+    except ValueError:
+        update.message.reply_text(f'port must be a number')
+    # Add service
+    service = ServiceManager().add(service_type, name, domain, port)
+    update.message.reply_text(f'Ok! I\'ve added {service}')
+
+
+def remove(update: Update, context: CallbackContext) -> None:
+    if len(context.args) != 1:
+        update.message.reply_text('Please, use /remove <name>')
+        return
+    name, = context.args
+    ServiceManager().remove(name)
+    update.message.reply_text(f'Ok! I\'ve removed {name}')
+
+
+def list_services(update: Update, context: CallbackContext) -> None:
+    all_services = ServiceManager().fetch_all()
+    services_str = [f'\n- {service.__repr__()}' for service in all_services]
+    update.message.reply_text(f'I\'m polling: {"".join(services_str)}')
+
+
 def main() -> None:
     updater = Updater(BOT_TOKEN)
     dispatcher = updater.dispatcher
     job = updater.job_queue
     job.run_repeating(check_all_services, POLLING_INTERVAL)
+    dispatcher.add_handler(CommandHandler('add', add))
+    dispatcher.add_handler(CommandHandler('remove', remove))
+    dispatcher.add_handler(CommandHandler('list', list_services))
     dispatcher.add_error_handler(error)
     updater.start_polling()
     updater.idle()
