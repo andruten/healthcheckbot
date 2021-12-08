@@ -18,7 +18,10 @@ class SocketBackend(BaseBackend):
     def check(self):
         a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         location = (self.service.domain, self.service.port)
-        result_of_check = a_socket.connect_ex(location)
+        try:
+            result_of_check = a_socket.connect_ex(location)
+        except socket.error:
+            return False
         return bool(result_of_check == 0)
 
 
