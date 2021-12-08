@@ -1,11 +1,11 @@
-from typing import List
+from typing import List, Dict
 
-from backends import SocketBackend, RequestBackend
-from persistence import read_services, add_service, remove_service
+from backends import BaseBackend, SocketBackend, RequestBackend
+from persistence import PersistenceBackend
 
 
 class Service:
-    BACKENDS = {
+    HEALTHCHECK_BACKENDS = {
         'socket': SocketBackend,
         'request': RequestBackend,
     }
@@ -18,21 +18,27 @@ class Service:
         self.enabled = enabled
 
     @property
-    def backend(self):
-        return self.BACKENDS[self.service_type](self)
+    def healthcheck_backend(self) -> BaseBackend:
+        return self.HEALTHCHECK_BACKENDS[self.service_type](self)
 
     def __repr__(self) -> str:
         return f'{self.name} <{self.domain}:{self.port}>'
 
-    def to_dict(self):
+    def __str__(self) -> str:
+        return f'{self.name} <{self.domain}:{self.port}>'
+
+    def to_dict(self) -> Dict:
         return self.__dict__
 
 
 class ServiceManager:
 
+    def __init__(self, persistence_backend: PersistenceBackend) -> None:
+        self.persistence_backend = persistence_backend
+
     def fetch_all(self) -> List[Service]:
         services = []
-        for service_data in read_services():
+        for service_data in self.persistence_backend.fetch_all():
             services.append(Service(**service_data))
         return services
 
@@ -41,9 +47,9 @@ class ServiceManager:
 
     def add(self, service_type: str, name: str, domain: str, port: int, enabled: bool = True) -> Service:
         service = Service(service_type.lower(), name, domain, int(port), enabled)
-        add_service(service.to_dict())
+        self.persistence_backend.add(service.to_dict())
         return service
 
-    def remove(self, name):
-        remove_service(name)
+    def remove(self, name) -> None:
+        self.persistence_backend.remove(name)
         self.fetch_all()

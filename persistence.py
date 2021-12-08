@@ -1,25 +1,43 @@
 import json
+from os.path import isfile, join, splitext
+from os import listdir
 from typing import List, Dict
 
 
-def read_services(filename='data/services.json') -> List[Dict]:
-    try:
-        with open(filename) as f:
-            return json.load(f)
-    except FileNotFoundError:
-        with open(filename, '+w') as f:
-            f.write('[]')
-        return []
+class PersistenceBackend:
 
+    def __init__(self, chat_id, filename) -> None:
+        self.chat_id = chat_id
+        self.filename = filename
 
-def add_service(service_data: Dict, filename: str = 'data/services.json') -> None:
-    services_data = read_services(filename)
-    services_data.append(service_data)
-    with open(filename, '+w') as f:
-        f.write(json.dumps(services_data))
+    @staticmethod
+    def get_all_chat_ids(path='data'):
+        json_filenames = [filename for filename in listdir(path)
+                          if isfile(join(path, filename)) and filename.endswith('.json')]
+        return [splitext(filename)[0] for filename in json_filenames]
 
+    @classmethod
+    def create(cls, chat_id: str):
+        filename = f'data/{chat_id}.json'
+        return cls(chat_id, filename)
 
-def remove_service(name: str, filename: str = 'data/services.json') -> None:
-    services_data = [service_data for service_data in read_services(filename) if service_data['name'] != name]
-    with open(filename, '+w') as f:
-        f.write(json.dumps(services_data))
+    def _save(self, data: List[Dict]):
+        with open(self.filename, '+w') as f:
+            f.write(json.dumps(data))
+
+    def fetch_all(self):
+        try:
+            with open(self.filename) as f:
+                return json.load(f)
+        except FileNotFoundError:
+            self._save([])
+            return []
+
+    def add(self, data_to_append):
+        services_data = self.fetch_all()
+        services_data.append(data_to_append)
+        self._save(services_data)
+
+    def remove(self, name: str):
+        services_data = [item for item in self.fetch_all() if item['name'].lower() != name.lower()]
+        self._save(services_data)

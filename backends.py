@@ -28,7 +28,7 @@ class RequestBackend(BaseBackend):
         protocol = 'https' if self.service.port == 443 else 'http'
         return f'{protocol}://{self.service.domain}:{self.service.port}'
 
-    def check(self, timeout=3):
+    def check(self, timeout=5):
         url = self._get_url()
         try:
             response = requests.head(url, timeout=timeout)
