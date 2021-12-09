@@ -46,6 +46,8 @@ def check_all_services(context: CallbackContext):
 
 
 def add_service(update: Update, context: CallbackContext) -> None:
+    if str(update.effective_chat.id) not in ALLOW_LIST_CHAT_IDS:
+        update.message.reply_text(f'You\'re not allowed to use this command')
     # Validate arguments
     if len(context.args) != 4:
         update.message.reply_text('Please, use /add <service_type> <name> <domain> <port>')
@@ -59,10 +61,6 @@ def add_service(update: Update, context: CallbackContext) -> None:
     except ValueError:
         update.message.reply_text(f'<port> must be a number')
         return
-    if domain in ['localhost', '0.0.0.0', '127.0.0.1'] \
-            and str(update.effective_chat.id) not in ALLOW_LIST_CHAT_IDS:
-        update.message.reply_text(f'You\'re not allowed to subscribe to {domain} domain')
-        return
     # All validations are passing so Service will be added
     persistence = PersistenceBackend.create(update.effective_chat.id)
     service = ServiceManager(persistence).add(service_type, name, domain, port)
@@ -70,6 +68,8 @@ def add_service(update: Update, context: CallbackContext) -> None:
 
 
 def remove_service(update: Update, context: CallbackContext) -> None:
+    if str(update.effective_chat.id) not in ALLOW_LIST_CHAT_IDS:
+        update.message.reply_text(f'You\'re not allowed to use this command')
     if len(context.args) != 1:
         update.message.reply_text('Please, use /remove <name>')
         return
@@ -80,6 +80,8 @@ def remove_service(update: Update, context: CallbackContext) -> None:
 
 
 def list_services(update: Update, context: CallbackContext) -> None:
+    if str(update.effective_chat.id) not in ALLOW_LIST_CHAT_IDS:
+        update.message.reply_text(f'You\'re not allowed to use this command')
     persistence = PersistenceBackend.create(update.effective_chat.id)
     all_services = ServiceManager(persistence).fetch_all()
     services_str = [f'\n{service}' for service in all_services]
