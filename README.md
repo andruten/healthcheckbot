@@ -16,6 +16,10 @@ Add new service to the polling list
 ```
 /add <service_type> <name> <domain> <port>
 ```
+- `service_type` must be "socket" or "request"
+- `name` is the name that will be stored
+- `domain` is the domain that will be reached by the service 
+- `port` is the port number 
 
 ### remove
 Unsubscribe a service from the polling list by name
