@@ -48,6 +48,7 @@ def check_all_services(context: CallbackContext):
 def add_service(update: Update, context: CallbackContext) -> None:
     if str(update.effective_chat.id) not in ALLOW_LIST_CHAT_IDS:
         update.message.reply_text(f'You\'re not allowed to use this command')
+        return
     # Validate arguments
     if len(context.args) != 4:
         update.message.reply_text('Please, use /add <service_type> <name> <domain> <port>')
@@ -70,6 +71,7 @@ def add_service(update: Update, context: CallbackContext) -> None:
 def remove_service(update: Update, context: CallbackContext) -> None:
     if str(update.effective_chat.id) not in ALLOW_LIST_CHAT_IDS:
         update.message.reply_text(f'You\'re not allowed to use this command')
+        return
     if len(context.args) != 1:
         update.message.reply_text('Please, use /remove <name>')
         return
@@ -82,6 +84,7 @@ def remove_service(update: Update, context: CallbackContext) -> None:
 def list_services(update: Update, context: CallbackContext) -> None:
     if str(update.effective_chat.id) not in ALLOW_LIST_CHAT_IDS:
         update.message.reply_text(f'You\'re not allowed to use this command')
+        return
     persistence = PersistenceBackend.create(update.effective_chat.id)
     all_services = ServiceManager(persistence).fetch_all()
     services_str = [f'\n{service}' for service in all_services]
