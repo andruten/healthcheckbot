@@ -1,7 +1,7 @@
 # Health check bot
 
 Welcome to Health check bot 👋!! I'm a python bot for telegram which intends to implement a (very basic) healthcheck
-system.
+system. I can make HTTP requests or open Sockets.
 
 ## Available commands
 
@@ -27,7 +27,7 @@ Unsubscribe a service from the polling list by name
 /remove <name>
 ```
 
-## Environment parameters
+## Environment variables
 
 | Key                 | example value | Description                                                                  | 
 |---------------------|---------------|------------------------------------------------------------------------------|
