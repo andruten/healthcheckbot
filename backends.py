@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+from socket import AF_INET, SOCK_STREAM, error, socket, timeout
+
 import requests
-import socket
 
 
 class BaseBackend(ABC):
@@ -9,18 +10,18 @@ class BaseBackend(ABC):
         self.service = service
 
     @abstractmethod
-    def check(self, **kwargs):
+    def check(self, **kwargs):  # pragma: no cover
         pass
 
 
 class SocketBackend(BaseBackend):
 
     def check(self):
-        a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        a_socket = socket(AF_INET, SOCK_STREAM)
         location = (self.service.domain, self.service.port)
         try:
             result_of_check = a_socket.connect_ex(location)
-        except socket.error:
+        except (error, timeout):
             return False
         return bool(result_of_check == 0)
 

@@ -1,12 +1,33 @@
 import json
-from os.path import isfile, join, splitext
+from abc import ABC, abstractmethod
 from os import listdir
-from typing import List, Dict
+from os.path import isfile, join, splitext
+from typing import Dict, List
 
 
-class PersistenceBackend:
+class BaseRepository(ABC):
 
-    def __init__(self, chat_id, filename) -> None:
+    @classmethod
+    @abstractmethod
+    def create(cls, chat_id: str):
+        pass
+
+    @abstractmethod
+    def fetch_all(self):
+        pass
+
+    @abstractmethod
+    def add(self, data_to_append):
+        pass
+
+    @abstractmethod
+    def remove(self, name: str):
+        pass
+
+
+class PersistenceBackend(BaseRepository):
+
+    def __init__(self, chat_id: str, filename: str) -> None:
         self.chat_id = chat_id
         self.filename = filename
 
