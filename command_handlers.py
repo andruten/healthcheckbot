@@ -1,25 +1,30 @@
 from typing import Dict, List, Optional
 
-from models import Service, ServiceManager
+from models import Service, ServiceManager, ServiceStatus
 from persistence import LocalJsonRepository
 
 
-def chat_service_checker_command_handler(chat_id: str) -> Dict[str, Optional[List]]:
+def chat_service_checker_command_handler(chat_id: str) -> Dict[Dict, Optional[List]]:
     persistence = LocalJsonRepository.create(chat_id)
-    failing_active_services = ServiceManager(persistence).fetch_active()
-    failing_services = []
-    for service in failing_active_services:
-        service_response = service.healthcheck_backend.check()
-        if not service_response:
-            failing_services.append(service)
-    if failing_services:
+    service_manager = ServiceManager(persistence)
+    active_services = service_manager.fetch_active()
+    unhealthy_services = []
+    healthy_services = []
+    for service in active_services:
+        if service.healthcheck_backend.check() is False and service.status != ServiceStatus.UNHEALTHY:
+            unhealthy_services.append(service)
+            service_manager.mark_as_unhealthy(service)
+        elif service.status == ServiceStatus.UNHEALTHY:
+            healthy_services.append(service)
+            service_manager.mark_as_healthy(service)
+    if unhealthy_services:
         return {
-            chat_id: failing_services
+            chat_id: {'unhealthy': unhealthy_services, 'healthy': healthy_services}
         }
     return {}
 
 
-def chat_services_checker_command_handler() -> Dict[str, Optional[List]]:
+def chat_services_checker_command_handler() -> Dict[str, Optional[Dict, Optional[List]]]:
     chat_failing_services = {}
     chat_ids = LocalJsonRepository.get_all_chat_ids()
 

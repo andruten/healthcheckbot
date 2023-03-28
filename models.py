@@ -55,6 +55,14 @@ class ServiceManager:
     def __init__(self, persistence_backend: BaseRepository) -> None:
         self.persistence_backend = persistence_backend
 
+    def mark_as_healthy(self, service: Service):
+        service.status = ServiceStatus.HEALTHY
+        self.persistence_backend.update(service.to_dict())
+
+    def mark_as_unhealthy(self, service: Service):
+        service.status = ServiceStatus.UNHEALTHY
+        self.persistence_backend.update(service.to_dict())
+
     def fetch_all(self) -> List[Service]:
         services = []
         for service_data in self.persistence_backend.fetch_all():

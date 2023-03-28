@@ -32,12 +32,15 @@ def error(update, context):
 
 
 def check_all_services(context: CallbackContext):
-    chat_failing_services = chat_services_checker_command_handler()
+    chat_fetched_services = chat_services_checker_command_handler()
 
-    for chat_id in chat_failing_services:
-        failing_services = chat_failing_services[chat_id]
-        for failing_service in failing_services:
-            text = f'{failing_service} is down!'
+    for chat_id in chat_fetched_services:
+        fetched_services = chat_fetched_services[chat_id]
+        for unhealthy_service in fetched_services['unhealthy']:
+            text = f'{unhealthy_service} is unhealthy 🤕!'
+            context.bot.send_message(chat_id=chat_id, text=text)
+        for healthy_service in fetched_services['healthy']:
+            text = f'{healthy_service} is healthy 😅!'
             context.bot.send_message(chat_id=chat_id, text=text)
 
 
@@ -61,7 +64,6 @@ def add_service(update: Update, context: CallbackContext) -> None:
         update.message.reply_text('<port> must be a number')
         return
 
-    # All validations are passing so Service will be added
     service = add_service_command_handler(update.effective_chat.id, service_type, name, domain, port)
 
     update.message.reply_text(f'ok! I\'ve added {service}')
@@ -71,6 +73,7 @@ def remove_service(update: Update, context: CallbackContext) -> None:
     if str(update.effective_chat.id) not in ALLOW_LIST_CHAT_IDS:
         update.message.reply_text('You\'re not allowed to use this command')
         return
+
     if len(context.args) != 1:
         update.message.reply_text('Please, use /remove <name>')
         return

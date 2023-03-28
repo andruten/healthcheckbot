@@ -28,6 +28,10 @@ class BaseRepository(ABC):
     def remove(self, name: str):
         pass
 
+    @abstractmethod
+    def update(self, service_to_update: Dict):
+        pass
+
 
 class LocalJsonRepository(BaseRepository):
 
@@ -67,3 +71,11 @@ class LocalJsonRepository(BaseRepository):
     def remove(self, name: str):
         services_data = [item for item in self.fetch_all() if item['name'].lower() != name.lower()]
         self._save(services_data)
+
+    def update(self, service_to_update: Dict):
+        all_services = self.fetch_all()
+        for index, service in enumerate(all_services):
+            if service['name'].lower() == service_to_update['name'].lower():
+                all_services[index] = service_to_update
+                break
+        self._save(all_services)
