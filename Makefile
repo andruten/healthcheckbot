@@ -31,3 +31,6 @@ lint: check_env build_dev
 
 test: check_env build_dev
 	@$(DOCKER) run --rm --env-file .env healthcheckbot:latest python -m pytest .
+
+coverage: check_env build_dev
+	@$(DOCKER) run --rm --env-file .env -v $(CURRENT_DIR):/opt/app healthcheckbot:latest python -m pytest --cov-report html

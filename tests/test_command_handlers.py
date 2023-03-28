@@ -56,6 +56,50 @@ class TestCommandHandlers(unittest.TestCase):
         self.assertIsInstance(chat_services, dict)
         self.assertTrue(len(chat_services), 1)
 
+    @patch('command_handlers.LocalJsonRepository.create')
+    @patch('command_handlers.ServiceManager.fetch_active')
+    def test_chat_service_checker_command_handler_empty(
+            self,
+            mock_service_manager,
+            mock_repository_create,
+    ):
+        mock_repository_create.return_value = MagicMock()
+        with patch.object(Service, 'healthcheck_backend', new_callable=PropertyMock) as mock_healthcheck_backend:
+            mock_ht_service = MagicMock(return_value=True)
+            mock_healthcheck_backend.return_value = MagicMock(check=mock_ht_service)
+            mock_service_manager.return_value = []
+
+            chat_services = chat_service_checker_command_handler('1234')
+
+        self.assertIsInstance(chat_services, dict)
+        self.assertEqual(len(chat_services), 0)
+
+    @patch('command_handlers.LocalJsonRepository.create')
+    @patch('command_handlers.ServiceManager.fetch_active')
+    def test_chat_service_checker_command_handler_unhealthy(
+            self,
+            mock_service_manager,
+            mock_repository_create,
+    ):
+        mock_repository_create.return_value = MagicMock()
+        with patch.object(Service, 'healthcheck_backend', new_callable=PropertyMock) as mock_healthcheck_backend:
+            mock_ht_service = MagicMock(return_value=False)
+            mock_healthcheck_backend.return_value = MagicMock(check=mock_ht_service)
+            mock_service_manager.return_value = [
+                Service(
+                    service_type='request',
+                    name='test',
+                    domain='test.com',
+                    port=443,
+                    status=ServiceStatus.HEALTHY,
+                ),
+            ]
+
+            chat_services = chat_service_checker_command_handler('1234')
+
+        self.assertIsInstance(chat_services, dict)
+        self.assertTrue(len(chat_services), 1)
+
     @patch('command_handlers.LocalJsonRepository.get_all_chat_ids')
     @patch('command_handlers.chat_service_checker_command_handler')
     def test_chat_services_checker_command_handler(self, mock_chat_handler, mock_chat_ids):
