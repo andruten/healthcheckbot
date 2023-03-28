@@ -91,7 +91,7 @@ def list_services(update: Update, context: CallbackContext) -> None:
 
     services_str = list_services_command_handler(str(update.effective_chat.id))
 
-    update.message.reply_text(f'I\'m polling{"".join(services_str)}')
+    update.message.reply_text(''.join(services_str))
 
 
 def main() -> None:

@@ -55,5 +55,4 @@ def remove_services_command_handler(name, chat_id: str) -> None:
 def list_services_command_handler(chat_id: str) -> List[str]:
     persistence = LocalJsonRepository.create(chat_id)
     all_services = ServiceManager(persistence).fetch_all()
-    print(all_services)
-    return [f'\n{service}' for service in all_services]
+    return [f'\n- {service.name} is `{service.status.value}`' for service in all_services]

@@ -41,10 +41,10 @@ class Service:
         return HEALTHCHECK_BACKENDS[self.service_type](self)
 
     def __repr__(self) -> str:
-        return f'{self.name} <{self.domain}:{self.port}> :: "{self.status.value}"'
+        return f'{self.name} <{self.domain}:{self.port}>'
 
     def __str__(self) -> str:
-        return f'{self.name} <{self.domain}:{self.port}> :: "{self.status.value}"'
+        return f'{self.name} <{self.domain}:{self.port}>'
 
     def to_dict(self) -> Dict:
         return asdict(self, dict_factory=service_asdict_factory)
