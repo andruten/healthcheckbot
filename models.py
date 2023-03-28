@@ -66,7 +66,9 @@ class ServiceManager:
     def fetch_all(self) -> List[Service]:
         services = []
         for service_data in self.persistence_backend.fetch_all():
-            services.append(Service(**service_data))
+            status = service_data.pop('status')
+            service_status = ServiceStatus(status)
+            services.append(Service(status=service_status, **service_data))
         return services
 
     def fetch_active(self) -> List[Service]:

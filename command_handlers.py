@@ -1,7 +1,10 @@
+import logging
 from typing import Dict, List, Optional
 
 from models import Service, ServiceManager, ServiceStatus
 from persistence import LocalJsonRepository
+
+logger = logging.getLogger(__name__)
 
 
 def chat_service_checker_command_handler(chat_id: str) -> Dict[Dict, Optional[List]]:
@@ -11,12 +14,16 @@ def chat_service_checker_command_handler(chat_id: str) -> Dict[Dict, Optional[Li
     unhealthy_services = []
     healthy_services = []
     for service in active_services:
-        if service.healthcheck_backend.check() is False and service.status != ServiceStatus.UNHEALTHY:
-            unhealthy_services.append(service)
-            service_manager.mark_as_unhealthy(service)
-        if service.status == ServiceStatus.UNHEALTHY:
-            healthy_services.append(service)
-            service_manager.mark_as_healthy(service)
+        logger.info(f'name={service.name} status={service.status}')
+        service_is_healthy = service.healthcheck_backend.check()
+        if service_is_healthy is False:
+            if service.status != ServiceStatus.UNHEALTHY:
+                unhealthy_services.append(service)
+                service_manager.mark_as_unhealthy(service)
+        if service_is_healthy is True:
+            if service.status != ServiceStatus.HEALTHY:
+                healthy_services.append(service)
+                service_manager.mark_as_healthy(service)
     if unhealthy_services or healthy_services:
         return {
             chat_id: {'unhealthy': unhealthy_services, 'healthy': healthy_services}
