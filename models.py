@@ -1,25 +1,44 @@
-from typing import List, Dict
+import enum
+from dataclasses import asdict, dataclass, field
+from typing import Dict, List
 
-from backends import BaseBackend, SocketBackend, RequestBackend
-from persistence import PersistenceBackend
+from backends import BaseBackend, RequestBackend, SocketBackend
+from persistence import BaseRepository
+
+HEALTHCHECK_BACKENDS = {
+    'socket': SocketBackend,
+    'request': RequestBackend,
+}
 
 
+class ServiceStatus(enum.Enum):
+    UNKNOWN = 'unknown'
+    HEALTHY = 'healthy'
+    UNHEALTHY = 'unhealthy'
+
+
+def service_asdict_factory(data):
+
+    def convert_value(obj):
+        if isinstance(obj, ServiceStatus):
+            return obj.value
+        return obj
+
+    return dict((k, convert_value(v)) for k, v in data)
+
+
+@dataclass
 class Service:
-    HEALTHCHECK_BACKENDS = {
-        'socket': SocketBackend,
-        'request': RequestBackend,
-    }
-
-    def __init__(self, service_type: str, name: str, domain: str, port: int, enabled: bool = True) -> None:
-        self.service_type = service_type
-        self.name = name
-        self.domain = domain
-        self.port = port
-        self.enabled = enabled
+    service_type: str = field()
+    name: str = field()
+    domain: str = field()
+    port: int = field()
+    enabled: bool = True
+    status: ServiceStatus = ServiceStatus.UNKNOWN
 
     @property
     def healthcheck_backend(self) -> BaseBackend:
-        return self.HEALTHCHECK_BACKENDS[self.service_type](self)
+        return HEALTHCHECK_BACKENDS[self.service_type](self)
 
     def __repr__(self) -> str:
         return f'{self.name} <{self.domain}:{self.port}>'
@@ -28,12 +47,12 @@ class Service:
         return f'{self.name} <{self.domain}:{self.port}>'
 
     def to_dict(self) -> Dict:
-        return self.__dict__
+        return asdict(self, dict_factory=service_asdict_factory)
 
 
 class ServiceManager:
 
-    def __init__(self, persistence_backend: PersistenceBackend) -> None:
+    def __init__(self, persistence_backend: BaseRepository) -> None:
         self.persistence_backend = persistence_backend
 
     def fetch_all(self) -> List[Service]:

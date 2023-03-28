@@ -1,8 +1,12 @@
 import json
+import logging
 from abc import ABC, abstractmethod
+from json import JSONDecodeError
 from os import listdir
 from os.path import isfile, join, splitext
 from typing import Dict, List
+
+logger = logging.getLogger(__name__)
 
 
 class BaseRepository(ABC):
@@ -25,7 +29,7 @@ class BaseRepository(ABC):
         pass
 
 
-class PersistenceBackend(BaseRepository):
+class LocalJsonRepository(BaseRepository):
 
     def __init__(self, chat_id: str, filename: str) -> None:
         self.chat_id = chat_id
@@ -50,7 +54,8 @@ class PersistenceBackend(BaseRepository):
         try:
             with open(self.filename) as f:
                 return json.load(f)
-        except FileNotFoundError:
+        except (FileNotFoundError, JSONDecodeError):
+            logging.info('JSON file did not exist or it was empty. Creating and setting an empty JSON list')
             self._save([])
             return []
 
