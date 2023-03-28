@@ -33,7 +33,7 @@ class Service:
     name: str = field()
     domain: str = field()
     port: int = field()
-    enabled: bool = True
+    enabled: bool = field(default=True)
     status: ServiceStatus = ServiceStatus.UNKNOWN
 
     @property

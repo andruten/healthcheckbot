@@ -29,4 +29,9 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY_GITHUB_ACTIONS }}
           port: ${{ secrets.SSH_PORT }}
-          script: ${{ secrets.DEPLOYMENT_SCRIPT }}
+          script: |
+            cd ${{ secrets.DEPLOY_PATH }}
+            make build
+            docker stop healthcheckbot
+            docker rm -f healthcheckbot
+            make run_detached
