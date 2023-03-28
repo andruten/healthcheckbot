@@ -98,7 +98,7 @@ def main() -> None:
     application = Application.builder().token(BOT_TOKEN).build()
 
     job_queue = application.job_queue
-    job_queue.run_repeating(check_all_services, POLLING_INTERVAL)
+    job_queue.run_repeating(check_all_services, interval=POLLING_INTERVAL, first=0)
 
     application.add_handler(CommandHandler('add', add_service))
     application.add_handler(CommandHandler('remove', remove_service))

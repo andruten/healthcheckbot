@@ -1,9 +1,12 @@
 FROM python:3.11-slim-bullseye
 
+ARG GID=1000
+ARG UID=1000
+
 RUN mkdir /opt/app \
     && mkdir /opt/requirements \
-    && addgroup --gid 4000 apprunner \
-    && adduser --system --disabled-password --disabled-login --gecos "" --gid 4000 --uid 4000 apprunner \
+    && addgroup --gid $GID apprunner \
+    && adduser --system --disabled-password --disabled-login --gecos "" --gid $GID --uid $UID apprunner \
     && chown -R apprunner:apprunner /opt/app \
     && chown -R apprunner:apprunner /opt/requirements \
     && chsh -s /bin/false apprunner
