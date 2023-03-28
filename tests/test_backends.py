@@ -36,7 +36,7 @@ class TestSocketBackend(unittest.TestCase):
         self.assertFalse(self.backend.check())
 
 
-@patch('backends.requests.head')
+@patch('backends.requests.get')
 class TestRequestBackend(unittest.TestCase):
 
     def setUp(self) -> None:
