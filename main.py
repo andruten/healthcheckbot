@@ -37,10 +37,10 @@ def check_all_services(context: CallbackContext):
     for chat_id in chat_fetched_services:
         fetched_services = chat_fetched_services[chat_id]
         for unhealthy_service in fetched_services['unhealthy']:
-            text = f'{unhealthy_service} is unhealthy 🤕!'
+            text = f'{unhealthy_service} is down 🤕!'
             context.bot.send_message(chat_id=chat_id, text=text)
         for healthy_service in fetched_services['healthy']:
-            text = f'{healthy_service} is healthy 😅!'
+            text = f'{healthy_service} is fixed now 😅!'
             context.bot.send_message(chat_id=chat_id, text=text)
 
 

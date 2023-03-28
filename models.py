@@ -34,7 +34,7 @@ class Service:
     domain: str = field()
     port: int = field()
     enabled: bool = field(default=True)
-    status: ServiceStatus = ServiceStatus.UNKNOWN
+    status: ServiceStatus = field(init=True, default=ServiceStatus.UNKNOWN)
 
     @property
     def healthcheck_backend(self) -> BaseBackend:

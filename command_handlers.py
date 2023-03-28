@@ -14,17 +14,17 @@ def chat_service_checker_command_handler(chat_id: str) -> Dict[Dict, Optional[Li
         if service.healthcheck_backend.check() is False and service.status != ServiceStatus.UNHEALTHY:
             unhealthy_services.append(service)
             service_manager.mark_as_unhealthy(service)
-        elif service.status == ServiceStatus.UNHEALTHY:
+        if service.status == ServiceStatus.UNHEALTHY:
             healthy_services.append(service)
             service_manager.mark_as_healthy(service)
-    if unhealthy_services:
+    if unhealthy_services or healthy_services:
         return {
             chat_id: {'unhealthy': unhealthy_services, 'healthy': healthy_services}
         }
     return {}
 
 
-def chat_services_checker_command_handler() -> Dict[str, Optional[Dict, Optional[List]]]:
+def chat_services_checker_command_handler() -> Dict[str, Optional[Dict]]:
     chat_failing_services = {}
     chat_ids = LocalJsonRepository.get_all_chat_ids()
 
@@ -48,4 +48,5 @@ def remove_services_command_handler(name, chat_id: str) -> None:
 def list_services_command_handler(chat_id: str) -> List[str]:
     persistence = LocalJsonRepository.create(chat_id)
     all_services = ServiceManager(persistence).fetch_all()
+    print(all_services)
     return [f'\n{service}' for service in all_services]
