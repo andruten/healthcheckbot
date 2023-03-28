@@ -1,3 +1,0 @@
-requests<3
-python-telegram-bot<14
-python-environ<0.5

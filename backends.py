@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+from socket import AF_INET, SOCK_STREAM, error, socket, timeout
+
 import requests
-import socket
 
 
 class BaseBackend(ABC):
@@ -9,20 +10,20 @@ class BaseBackend(ABC):
         self.service = service
 
     @abstractmethod
-    def check(self, **kwargs):
+    def check(self, **kwargs) -> bool:  # pragma: no cover
         pass
 
 
 class SocketBackend(BaseBackend):
 
-    def check(self):
-        a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    def check(self) -> bool:
+        a_socket = socket(AF_INET, SOCK_STREAM)
         location = (self.service.domain, self.service.port)
         try:
             result_of_check = a_socket.connect_ex(location)
-        except socket.error:
+        except (error, timeout):
             return False
-        return bool(result_of_check == 0)
+        return result_of_check == 0
 
 
 class RequestBackend(BaseBackend):
@@ -31,13 +32,11 @@ class RequestBackend(BaseBackend):
         protocol = 'https' if self.service.port == 443 else 'http'
         return f'{protocol}://{self.service.domain}:{self.service.port}'
 
-    def check(self, timeout=5):
+    def check(self, connection_timeout=5) -> bool:
         url = self._get_url()
         try:
-            response = requests.head(url, timeout=timeout)
+            response = requests.get(url, timeout=connection_timeout)
         except requests.exceptions.RequestException:
             return False
         else:
-            if response.status_code >= 400:
-                return False
-        return True
+            return response.status_code < 400

@@ -20,7 +20,7 @@ jobs:
           known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
 
       - name: Deploy with rsync
-        run: rsync -avz -e "ssh -i ~/.ssh/github-actions" . ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}
+        run: rsync -avz --delete --exclude '.git/' -e "ssh -i ~/.ssh/github-actions" . ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }} --exclude=/.env
 
       - name: executing remote ssh commands using ssh key
         uses: appleboy/ssh-action@master
@@ -29,4 +29,9 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY_GITHUB_ACTIONS }}
           port: ${{ secrets.SSH_PORT }}
-          script: ${{ secrets.DEPLOYMENT_SCRIPT }}
+          script: |
+            cd ${{ secrets.DEPLOY_PATH }}
+            make build
+            docker stop healthcheckbot
+            docker rm -f healthcheckbot
+            make run_detached

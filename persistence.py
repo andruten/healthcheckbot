@@ -1,12 +1,41 @@
 import json
-from os.path import isfile, join, splitext
+import logging
+from abc import ABC, abstractmethod
+from json import JSONDecodeError
 from os import listdir
-from typing import List, Dict
+from os.path import isfile, join, splitext
+from typing import Dict, List
+
+logger = logging.getLogger(__name__)
 
 
-class PersistenceBackend:
+class BaseRepository(ABC):
 
-    def __init__(self, chat_id, filename) -> None:
+    @classmethod
+    @abstractmethod
+    def create(cls, chat_id: str):
+        pass
+
+    @abstractmethod
+    def fetch_all(self):
+        pass
+
+    @abstractmethod
+    def add(self, data_to_append):
+        pass
+
+    @abstractmethod
+    def remove(self, name: str):
+        pass
+
+    @abstractmethod
+    def update(self, service_to_update: Dict):
+        pass
+
+
+class LocalJsonRepository(BaseRepository):
+
+    def __init__(self, chat_id: str, filename: str) -> None:
         self.chat_id = chat_id
         self.filename = filename
 
@@ -29,7 +58,8 @@ class PersistenceBackend:
         try:
             with open(self.filename) as f:
                 return json.load(f)
-        except FileNotFoundError:
+        except (FileNotFoundError, JSONDecodeError):
+            logging.info('JSON file did not exist or it was empty. Creating and setting an empty JSON list')
             self._save([])
             return []
 
@@ -41,3 +71,11 @@ class PersistenceBackend:
     def remove(self, name: str):
         services_data = [item for item in self.fetch_all() if item['name'].lower() != name.lower()]
         self._save(services_data)
+
+    def update(self, service_to_update: Dict):
+        all_services = self.fetch_all()
+        for index, service in enumerate(all_services):
+            if service['name'].lower() == service_to_update['name'].lower():
+                all_services[index] = service_to_update
+                break
+        self._save(all_services)
