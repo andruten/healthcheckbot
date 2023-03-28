@@ -31,17 +31,17 @@ def error(update, context):
     logger.error('Update "%s" caused error "%s"', update, context.error)
 
 
-async def check_all_services(context: CallbackContext):
+def check_all_services(context: CallbackContext):
     chat_fetched_services = chat_services_checker_command_handler()
 
     for chat_id in chat_fetched_services:
         fetched_services = chat_fetched_services[chat_id]
         for unhealthy_service in fetched_services['unhealthy']:
             text = f'{unhealthy_service} is down 🤕!'
-            await context.bot.send_message(chat_id=chat_id, text=text)
+            context.bot.send_message(chat_id=chat_id, text=text)
         for healthy_service in fetched_services['healthy']:
             text = f'{healthy_service} is fixed now 😅!'
-            await context.bot.send_message(chat_id=chat_id, text=text)
+            context.bot.send_message(chat_id=chat_id, text=text)
 
 
 async def add_service(update: Update, context: CallbackContext) -> None:
@@ -97,12 +97,13 @@ async def list_services(update: Update, context: CallbackContext) -> None:
 def main() -> None:
     application = Application.builder().token(BOT_TOKEN).build()
 
-    job = application.job_queue
-    job.run_repeating(check_all_services, POLLING_INTERVAL)
+    job_queue = application.job_queue
+    job_queue.run_repeating(check_all_services, POLLING_INTERVAL)
 
     application.add_handler(CommandHandler('add', add_service))
     application.add_handler(CommandHandler('remove', remove_service))
     application.add_handler(CommandHandler('list', list_services))
+
     application.add_error_handler(error)
 
     application.run_polling()
