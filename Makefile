@@ -9,13 +9,13 @@ ifeq ("$(wildcard .env)","")
 endif
 
 run: check_env build
-	@$(DOCKER) run --name healthcheckbot --restart on-failure:3 --env-file .env -v $(CURRENT_DIR):/opt/app healthcheckbot:latest
+	@$(DOCKER) run --name healthcheckbot --restart on-failure:3 --env-file .env -v $(CURRENT_DIR):/opt/app --add-host=host.docker.internal:host-gateway healthcheckbot:latest
 
 run_detached: check_env build
-	@$(DOCKER) run -d --name healthcheckbot --restart on-failure:3 --env-file .env -v $(CURRENT_DIR):/opt/app -ti healthcheckbot:latest
+	@$(DOCKER) run -d --name healthcheckbot --restart on-failure:3 --env-file .env -v $(CURRENT_DIR):/opt/app --add-host=host.docker.internal:host-gateway -ti healthcheckbot:latest
 
 run_dev: check_env build_dev
-	@$(DOCKER) run --rm --env-file .env -v $(CURRENT_DIR):/opt/app -ti healthcheckbot:latest
+	@$(DOCKER) run --rm --env-file .env -v $(CURRENT_DIR):/opt/app --add-host=host.docker.internal:host-gateway -ti healthcheckbot:latest
 
 build:
 	@$(DOCKER) build . -t healthcheckbot:latest
