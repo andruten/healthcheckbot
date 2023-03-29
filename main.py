@@ -2,7 +2,7 @@ import logging
 import os
 
 import environ
-from telegram import Update
+from telegram import ParseMode, Update
 from telegram.ext import CallbackContext, CommandHandler, Updater
 
 from command_handlers import (add_service_command_handler, chat_services_checker_command_handler,
@@ -91,7 +91,7 @@ def list_services(update: Update, context: CallbackContext) -> None:
 
     services_str = list_services_command_handler(str(update.effective_chat.id))
 
-    update.message.reply_text(''.join(services_str))
+    update.message.reply_text(''.join(services_str), parse_mode=ParseMode.MARKDOWN)
 
 
 def main() -> None:
