@@ -35,7 +35,7 @@ class RequestBackend(BaseBackend):
     def check(self, connection_timeout=5) -> bool:
         url = self._get_url()
         try:
-            response = requests.get(url, timeout=connection_timeout)
+            response = requests.get(url, timeout=connection_timeout, allow_redirects=False)
         except requests.exceptions.RequestException:
             return False
         else:
