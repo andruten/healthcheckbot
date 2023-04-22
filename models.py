@@ -40,10 +40,10 @@ class Service:
     def healthcheck_backend(self) -> BaseBackend:
         return HEALTHCHECK_BACKENDS[self.service_type](self)
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pragma: no cover
         return f'{self.name} <{self.domain}:{self.port}>'
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # pragma: no cover
         return f'{self.name} <{self.domain}:{self.port}>'
 
     def to_dict(self) -> Dict:

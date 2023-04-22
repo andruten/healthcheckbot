@@ -13,23 +13,23 @@ class BaseRepository(ABC):
 
     @classmethod
     @abstractmethod
-    def create(cls, chat_id: str):
+    def create(cls, chat_id: str):  # pragma: no cover
         pass
 
     @abstractmethod
-    def fetch_all(self):
+    def fetch_all(self):  # pragma: no cover
         pass
 
     @abstractmethod
-    def add(self, data_to_append):
+    def add(self, data_to_append: Dict):  # pragma: no cover
         pass
 
     @abstractmethod
-    def remove(self, name: str):
+    def remove(self, name: str):  # pragma: no cover
         pass
 
     @abstractmethod
-    def update(self, service_to_update: Dict):
+    def update(self, service_to_update: Dict):  # pragma: no cover
         pass
 
 
@@ -54,16 +54,19 @@ class LocalJsonRepository(BaseRepository):
         with open(self.filename, '+w') as f:
             f.write(json.dumps(data))
 
+    def _initialize_data(self) -> None:
+        self._save([])
+
     def fetch_all(self):
         try:
             with open(self.filename) as f:
                 return json.load(f)
         except (FileNotFoundError, JSONDecodeError):
-            logging.info('JSON file did not exist or it was empty. Creating and setting an empty JSON list')
-            self._save([])
-            return []
+            logging.warning('JSON file did not exist or it was empty. Creating and setting an empty JSON list')
+            self._initialize_data()
+            return self.fetch_all()
 
-    def add(self, data_to_append):
+    def add(self, data_to_append: Dict):
         services_data = self.fetch_all()
         services_data.append(data_to_append)
         self._save(services_data)
