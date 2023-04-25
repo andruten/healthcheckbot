@@ -1,6 +1,7 @@
+import datetime
 import enum
 from dataclasses import asdict, dataclass, field
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from backends import BaseBackend, RequestBackend, SocketBackend
 from persistence import BaseRepository
@@ -22,6 +23,8 @@ def service_asdict_factory(data):
     def convert_value(obj):
         if isinstance(obj, ServiceStatus):
             return obj.value
+        elif isinstance(obj, datetime.datetime):
+            return obj.strftime('%Y-%m-%dT%H:%M:%S.%f')
         return obj
 
     return dict((k, convert_value(v)) for k, v in data)
@@ -34,6 +37,8 @@ class Service:
     domain: str = field()
     port: int = field()
     enabled: bool = field(default=True)
+    last_time_healthy: Optional[datetime.datetime] = field(default=None)
+    time_to_first_byte: float = field(default=0.0)
     status: ServiceStatus = field(init=True, default=ServiceStatus.UNKNOWN)
 
     @property
@@ -44,7 +49,7 @@ class Service:
         return f'{self.name} <{self.domain}:{self.port}>'
 
     def __str__(self) -> str:  # pragma: no cover
-        return f'{self.name} <{self.domain}:{self.port}>'
+        return f'{self.name} <{self.domain}>'
 
     def to_dict(self) -> Dict:
         return asdict(self, dict_factory=service_asdict_factory)
@@ -55,8 +60,10 @@ class ServiceManager:
     def __init__(self, persistence_backend: BaseRepository) -> None:
         self.persistence_backend = persistence_backend
 
-    def mark_as_healthy(self, service: Service):
+    def mark_as_healthy(self, service: Service, time_to_first_byte):
         service.status = ServiceStatus.HEALTHY
+        service.time_to_first_byte = time_to_first_byte
+        service.last_time_healthy = datetime.datetime.utcnow()
         self.persistence_backend.update(service.to_dict())
 
     def mark_as_unhealthy(self, service: Service):

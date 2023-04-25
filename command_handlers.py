@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Dict, List, Optional
 
 from models import Service, ServiceManager, ServiceStatus
@@ -15,15 +16,17 @@ def chat_service_checker_command_handler(chat_id: str) -> Dict[Dict, Optional[Li
     healthy_services = []
     for service in active_services:
         logger.info(f'name={service.name} status={service.status}')
-        service_is_healthy = service.healthcheck_backend.check()
+        start = time.time()
+        service_is_healthy: bool = service.healthcheck_backend.check()
+        time_to_first_byte = time.time() - start
         if service_is_healthy is False:
             if service.status != ServiceStatus.UNHEALTHY:
                 unhealthy_services.append(service)
                 service_manager.mark_as_unhealthy(service)
-        if service_is_healthy is True:
+        else:
             if service.status != ServiceStatus.HEALTHY:
                 healthy_services.append(service)
-                service_manager.mark_as_healthy(service)
+                service_manager.mark_as_healthy(service, time_to_first_byte)
     if unhealthy_services or healthy_services:
         return {
             chat_id: {'unhealthy': unhealthy_services, 'healthy': healthy_services}
@@ -55,4 +58,5 @@ def remove_services_command_handler(name, chat_id: str) -> None:
 def list_services_command_handler(chat_id: str) -> List[str]:
     persistence = LocalJsonRepository.create(chat_id)
     all_services = ServiceManager(persistence).fetch_all()
-    return [f'\n- {service.name} is `{service.status.value}`' for service in all_services]
+    return [f'\n\n*{service.name}* \n`{service.status.value}`\nTTFB: {service.time_to_first_byte:.2f}'
+            for service in all_services]
