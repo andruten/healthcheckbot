@@ -28,7 +28,7 @@ class SocketBackend(BaseBackend):
 
 class RequestBackend(BaseBackend):
 
-    def _get_url(self):
+    def _get_url(self) -> str:
         protocol = 'https' if self.service.port == 443 else 'http'
         return f'{protocol}://{self.service.domain}:{self.service.port}'
 
