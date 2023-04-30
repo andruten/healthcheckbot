@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
+import logging
 from socket import AF_INET, SOCK_STREAM, error, socket, timeout
-
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 class BaseBackend(ABC):
@@ -35,8 +37,9 @@ class RequestBackend(BaseBackend):
     def check(self) -> bool:
         url = self._get_url()
         try:
-            response = requests.get(url, allow_redirects=False)
-        except requests.exceptions.RequestException:
+            response = requests.get(url)
+        except (requests.exceptions.RequestException, requests.exceptions.HTTPError):
+            logger.warning(f'"{url}" request failed')
             return False
         else:
-            return response.status_code < 400
+            return not (500 <= response.status_code <= 511)

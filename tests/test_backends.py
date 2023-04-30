@@ -57,14 +57,21 @@ class TestRequestBackend(unittest.TestCase):
     def test_400(self, mock_head):
         mock_head.return_value = MagicMock(status_code=400)
 
-        self.assertFalse(self.backend.check())
+        self.assertTrue(self.backend.check())
 
     def test_300(self, mock_head):
         mock_head.return_value = MagicMock(status_code=300)
 
         self.assertTrue(self.backend.check())
 
-    def test_request_exception(self, mock_head):
+    def test_999(self, mock_head):
+        mock_head.return_value = MagicMock(status_code=999)
+
+        self.assertTrue(self.backend.check())
+
+    @patch('backends.logger')
+    def test_request_exception(self, mock_logger, mock_head):
         mock_head.side_effect = requests.exceptions.RequestException
 
         self.assertFalse(self.backend.check())
+        mock_logger.warning.assert_called_once()
