@@ -69,7 +69,9 @@ class TestRequestBackend(unittest.TestCase):
 
         self.assertTrue(self.backend.check())
 
-    def test_request_exception(self, mock_head):
+    @patch('backends.logger')
+    def test_request_exception(self, mock_logger, mock_head):
         mock_head.side_effect = requests.exceptions.RequestException
 
         self.assertFalse(self.backend.check())
+        mock_logger.warning.assert_called_once()
