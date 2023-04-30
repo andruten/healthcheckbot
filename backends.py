@@ -35,8 +35,8 @@ class RequestBackend(BaseBackend):
     def check(self) -> bool:
         url = self._get_url()
         try:
-            response = requests.get(url, allow_redirects=False)
-        except requests.exceptions.RequestException:
+            response = requests.get(url)
+        except (requests.exceptions.RequestException, requests.exceptions.HTTPError):
             return False
         else:
-            return response.status_code < 400
+            return not (500 <= response.status_code <= 511)
