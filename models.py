@@ -1,10 +1,13 @@
 import datetime
 import enum
 from dataclasses import asdict, dataclass, field
+import logging
 from typing import Dict, List, Optional
 
 from backends import BaseBackend, RequestBackend, SocketBackend
 from persistence import BaseRepository
+
+logger = logging.getLogger(__name__)
 
 HEALTHCHECK_BACKENDS = {
     'socket': SocketBackend,
@@ -19,7 +22,6 @@ class ServiceStatus(enum.Enum):
 
 
 def service_asdict_factory(data):
-
     def convert_value(obj):
         if isinstance(obj, ServiceStatus):
             return obj.value
@@ -75,6 +77,13 @@ class ServiceManager:
         for service_data in self.persistence_backend.fetch_all():
             status = service_data.pop('status')
             service_status = ServiceStatus(status)
+            try:
+                service_data['last_time_healthy'] = datetime.datetime.strptime(
+                    service_data['last_time_healthy'],
+                    '%Y-%m-%dT%H:%M:%S.%f'
+                )
+            except (TypeError, KeyError) as e:
+                logger.debug(f'Exception occurred {e}')
             services.append(Service(status=service_status, **service_data))
         return services
 
