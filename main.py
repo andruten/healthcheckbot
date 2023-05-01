@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import List, Dict
 
 import environ
 from telegram import ParseMode, Update
@@ -7,7 +8,7 @@ from telegram.ext import CallbackContext, CommandHandler, Updater
 
 from command_handlers import (add_service_command_handler, chat_services_checker_command_handler,
                               list_services_command_handler, remove_services_command_handler)
-from models import HEALTHCHECK_BACKENDS
+from models import HEALTHCHECK_BACKENDS, Service
 
 abspath = os.path.abspath(__file__)
 directory_name = os.path.dirname(abspath)
@@ -35,13 +36,21 @@ def check_all_services(context: CallbackContext):
     chat_fetched_services = chat_services_checker_command_handler()
 
     for chat_id in chat_fetched_services:
-        fetched_services = chat_fetched_services[chat_id]
+        fetched_services: Dict[str, List[Service]] = chat_fetched_services[chat_id]
+        unhealthy_service: Service
         for unhealthy_service in fetched_services['unhealthy']:
-            text = f'{unhealthy_service} is down 🤕!'
+            text = f'{unhealthy_service.name} is down 🤕!'
             context.bot.send_message(chat_id=chat_id, text=text)
+        healthy_service: Service
         for healthy_service in fetched_services['healthy']:
-            text = f'{healthy_service} is fixed now 😅!'
-            context.bot.send_message(chat_id=chat_id, text=text)
+            try:
+                time_down = fetched_services['time_down'][healthy_service.name]
+                suffix = f' after {time_down}'
+            except (KeyError, TypeError) as e:
+                logger.debug(f'Exception occurred: {e}')
+                suffix = ''
+            text = f'{healthy_service.name} is fixed now{suffix} 😅!'
+            context.bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.MARKDOWN)
 
 
 def add_service(update: Update, context: CallbackContext) -> None:
