@@ -145,5 +145,5 @@ class TestCommandHandlers(unittest.TestCase):
         mock_repository_create.return_value = MagicMock()
         services = list_services_command_handler('1234')
 
-        self.assertIsInstance(services, list)
+        self.assertIsInstance(services, str)
         self.assertTrue(len(services), 3)

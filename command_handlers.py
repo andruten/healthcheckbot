@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import logging
 import time
 from typing import Dict, List, Optional
@@ -30,10 +30,13 @@ def chat_service_checker_command_handler(chat_id: str) -> Dict[Dict, Optional[Li
             if service.status != ServiceStatus.HEALTHY:
                 healthy_services.append(service)
                 try:
-                    time_down[service.name] = datetime.datetime.utcnow() - last_time_healthy_initial
-                except TypeError:
-                    pass
-                service_manager.mark_as_healthy(service, time_to_first_byte)
+                    time_down[service.name] = (
+                        datetime.utcnow().replace(microsecond=0) - last_time_healthy_initial.replace(microsecond=0)
+                    )
+                except (TypeError, AttributeError) as e:
+                    logger.info(f'Something happened while calculating time_down: {e}')
+                service_manager.mark_as_healthy(service)
+            service_manager.update_service_status(service, time_to_first_byte)
     if unhealthy_services or healthy_services:
         return {
             chat_id: {'unhealthy': unhealthy_services, 'healthy': healthy_services, 'time_down': {**time_down}}
@@ -62,10 +65,18 @@ def remove_services_command_handler(name, chat_id: str) -> None:
     ServiceManager(persistence).remove(name)
 
 
-def list_services_command_handler(chat_id: str) -> List[str]:
+def list_services_command_handler(chat_id: str) -> str:
     persistence = LocalJsonRepository.create(chat_id)
     all_services = ServiceManager(persistence).fetch_all()
     if not all_services:
-        return ['I\'m polling nothing']
-    return [f'\n\n*{service.name}* \n`{service.status.value}`\nTTFB: {service.time_to_first_byte:.2f}'
-            for service in all_services]
+        return 'There is nothing to see here'
+    result = ''
+    for service in all_services:
+        result += '\n\n'
+        result += f'name: `{service.name}`\n'
+        result += f'status: `{service.status.value}`\n'
+        if service.status == ServiceStatus.HEALTHY:
+            result += f'response time: `{service.time_to_first_byte:.2f}`'
+        elif service.status == ServiceStatus.UNHEALTHY and service.last_time_healthy is not None:
+            result += f'last time healthy: `{service.last_time_healthy.strftime("%m/%d/%Y %H:%M:%S")}`'
+    return result

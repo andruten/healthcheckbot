@@ -98,7 +98,7 @@ def list_services(update: Update, context: CallbackContext) -> None:
         update.message.reply_text('You\'re not allowed to use this command')
         return
 
-    services_str = list_services_command_handler(str(update.effective_chat.id))
+    services_str = list_services_command_handler(update.effective_chat.id)
 
     update.message.reply_text(''.join(services_str), parse_mode=ParseMode.MARKDOWN)
 
