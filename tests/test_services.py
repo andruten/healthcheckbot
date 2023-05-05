@@ -13,7 +13,7 @@ class TestServices(unittest.TestCase):
 
     def test_mark_as_healthy(self):
         mock_service = MagicMock()
-        self.service_manager.mark_as_healthy(mock_service, time_to_first_byte=1)
+        self.service_manager.mark_as_healthy(mock_service)
         self.assertEqual(mock_service.status, ServiceStatus.HEALTHY)
 
     def test_mark_as_unhealthy(self):

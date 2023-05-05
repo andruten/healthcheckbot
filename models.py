@@ -62,10 +62,13 @@ class ServiceManager:
     def __init__(self, persistence_backend: BaseRepository) -> None:
         self.persistence_backend = persistence_backend
 
-    def mark_as_healthy(self, service: Service, time_to_first_byte):
-        service.status = ServiceStatus.HEALTHY
-        service.time_to_first_byte = time_to_first_byte
+    def update_service_status(self, service: Service, time_to_first_byte):
         service.last_time_healthy = datetime.datetime.utcnow()
+        service.time_to_first_byte = time_to_first_byte
+        self.persistence_backend.update(service.to_dict())
+
+    def mark_as_healthy(self, service: Service):
+        service.status = ServiceStatus.HEALTHY
         self.persistence_backend.update(service.to_dict())
 
     def mark_as_unhealthy(self, service: Service):
