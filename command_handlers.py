@@ -1,6 +1,5 @@
 from datetime import datetime
 import logging
-import time
 from typing import Dict, List, Optional
 
 from models import Service, ServiceManager, ServiceStatus
@@ -18,10 +17,8 @@ def chat_service_checker_command_handler(chat_id: str) -> Dict[Dict, Optional[Li
     time_down = {}
     for service in active_services:
         logger.info(f'name={service.name} status={service.status}')
-        start = time.time()
         last_time_healthy_initial = service.last_time_healthy
-        service_is_healthy: bool = service.healthcheck_backend.check()
-        time_to_first_byte = time.time() - start
+        service_is_healthy, time_to_first_byte = service.healthcheck_backend.check()
         if service_is_healthy is False:
             if service.status != ServiceStatus.UNHEALTHY:
                 unhealthy_services.append(service)
@@ -74,9 +71,9 @@ def list_services_command_handler(chat_id: str) -> str:
     for service in all_services:
         result += '\n\n'
         result += f'name: `{service.name}`\n'
-        result += f'status: `{service.status.value}`\n'
-        if service.status == ServiceStatus.HEALTHY:
-            result += f'response time: `{service.time_to_first_byte:.2f}`'
+        result += f'status: `{service.status.value}`'
+        if service.status == ServiceStatus.HEALTHY and service.time_to_first_byte is not None:
+            result += f'\nresponse time: `{service.time_to_first_byte}`'
         elif service.status == ServiceStatus.UNHEALTHY and service.last_time_healthy is not None:
-            result += f'last time healthy: `{service.last_time_healthy.strftime("%m/%d/%Y %H:%M:%S")}`'
+            result += f'\nlast time healthy: `{service.last_time_healthy.strftime("%m/%d/%Y %H:%M:%S")}`'
     return result
