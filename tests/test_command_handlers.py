@@ -25,7 +25,7 @@ class TestCommandHandlers(unittest.TestCase):
     ):
         mock_repository_create.return_value = MagicMock()
         with patch.object(Service, 'healthcheck_backend', new_callable=PropertyMock) as mock_healthcheck_backend:
-            mock_ht_service = MagicMock(return_value=True)
+            mock_ht_service = MagicMock(return_value=(True, None))
             mock_healthcheck_backend.return_value = MagicMock(check=mock_ht_service)
             mock_service_manager.return_value = [
                 Service(
@@ -65,7 +65,7 @@ class TestCommandHandlers(unittest.TestCase):
     ):
         mock_repository_create.return_value = MagicMock()
         with patch.object(Service, 'healthcheck_backend', new_callable=PropertyMock) as mock_healthcheck_backend:
-            mock_ht_service = MagicMock(return_value=True)
+            mock_ht_service = MagicMock(return_value=(True, None))
             mock_healthcheck_backend.return_value = MagicMock(check=mock_ht_service)
             mock_service_manager.return_value = []
 
@@ -83,7 +83,7 @@ class TestCommandHandlers(unittest.TestCase):
     ):
         mock_repository_create.return_value = MagicMock()
         with patch.object(Service, 'healthcheck_backend', new_callable=PropertyMock) as mock_healthcheck_backend:
-            mock_ht_service = MagicMock(return_value=False)
+            mock_ht_service = MagicMock(return_value=(False, None))
             mock_healthcheck_backend.return_value = MagicMock(check=mock_ht_service)
             mock_service_manager.return_value = [
                 Service(
