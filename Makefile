@@ -13,7 +13,7 @@ run: check_env build
 	@$(DOCKER) run --name $(IMAGE_NAME) --restart on-failure:3 --env-file .env -v $(CURRENT_DIR):/opt/app --add-host=host.docker.internal:host-gateway $(IMAGE_NAME):latest
 
 run_detached: check_env build
-	@$(DOCKER) run -d --name $(IMAGE_NAME) --restart on-failure:3 --env-file .env -v $(CURRENT_DIR):/opt/app --add-host=host.docker.internal:host-gateway -ti $(IMAGE_NAME):latest
+	@$(DOCKER) run -d --name $(IMAGE_NAME) --restart always --env-file .env -v $(CURRENT_DIR):/opt/app --add-host=host.docker.internal:host-gateway -ti $(IMAGE_NAME):latest
 
 run_dev: check_env build_dev
 	@$(DOCKER) run --rm --env-file .env -v $(CURRENT_DIR):/opt/app --add-host=host.docker.internal:host-gateway -ti $(IMAGE_NAME):latest
