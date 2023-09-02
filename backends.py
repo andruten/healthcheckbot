@@ -26,6 +26,8 @@ class SocketBackend(BaseBackend):
             result_of_check = a_socket.connect_ex(location)
         except (error, timeout):
             return False, None
+        else:
+            a_socket.close()
         return result_of_check == 0, None
 
 
