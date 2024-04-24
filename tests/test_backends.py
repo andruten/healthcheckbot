@@ -2,7 +2,7 @@ import unittest
 from socket import error, timeout
 from unittest.mock import MagicMock, patch
 
-import requests
+import httpx
 
 from backends import RequestBackend, SocketBackend
 
@@ -40,7 +40,6 @@ class TestSocketBackend(unittest.TestCase):
         self.assertFalse(is_healthy)
 
 
-@patch('backends.requests.get')
 class TestRequestBackend(unittest.TestCase):
 
     def setUp(self) -> None:
@@ -48,40 +47,40 @@ class TestRequestBackend(unittest.TestCase):
         service = MagicMock(domain='fake', port=80)
         self.backend = RequestBackend(service)
 
-    def test_500(self, mock_get):
-        mock_get.return_value = MagicMock(status_code=500)
+    async def test_500(self):
+        mock_session = MagicMock(status_code=500)
 
-        is_healthy, time_to_first_byte = self.backend.check()
+        is_healthy, time_to_first_byte = await self.backend.check(mock_session)
         self.assertFalse(is_healthy)
 
-    def test_200(self, mock_get):
-        mock_get.return_value = MagicMock(status_code=200)
+    async def test_200(self):
+        mock_session = MagicMock(status_code=200)
 
-        is_healthy, time_to_first_byte = self.backend.check()
+        is_healthy, time_to_first_byte = await self.backend.check(mock_session)
         self.assertTrue(is_healthy)
 
-    def test_400(self, mock_get):
-        mock_get.return_value = MagicMock(status_code=400)
+    async def test_400(self):
+        mock_session = MagicMock(status_code=400)
 
-        is_healthy, time_to_first_byte = self.backend.check()
+        is_healthy, time_to_first_byte = await self.backend.check(mock_session)
         self.assertTrue(is_healthy)
 
-    def test_300(self, mock_get):
-        mock_get.return_value = MagicMock(status_code=300)
+    async def test_300(self):
+        mock_session = MagicMock(status_code=300)
 
-        is_healthy, time_to_first_byte = self.backend.check()
+        is_healthy, time_to_first_byte = await self.backend.check(mock_session)
         self.assertTrue(is_healthy)
 
-    def test_999(self, mock_get):
-        mock_get.return_value = MagicMock(status_code=999)
+    async def test_999(self):
+        mock_session = MagicMock(status_code=999)
 
-        is_healthy, time_to_first_byte = self.backend.check()
+        is_healthy, time_to_first_byte = await self.backend.check(mock_session)
         self.assertTrue(is_healthy)
 
     @patch('backends.logger')
-    def test_request_exception(self, mock_logger, mock_get):
-        mock_get.side_effect = requests.exceptions.RequestException
+    async def test_request_exception(self, mock_logger):
+        mock_session = httpx.HTTPError
 
-        is_healthy, time_to_first_byte = self.backend.check()
+        is_healthy, time_to_first_byte = await self.backend.check(mock_session)
         self.assertFalse(is_healthy)
         mock_logger.warning.assert_called_once()

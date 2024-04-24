@@ -1,6 +1,9 @@
+import asyncio
 from datetime import datetime
 import logging
-from typing import Dict, List, Optional
+from typing import Any
+
+import httpx
 
 from models import Service, ServiceManager, ServiceStatus
 from persistence import LocalJsonRepository
@@ -8,45 +11,55 @@ from persistence import LocalJsonRepository
 logger = logging.getLogger(__name__)
 
 
-def chat_service_checker_command_handler(chat_id: str) -> Dict[Dict, Optional[List]]:
+async def chat_service_checker_command_handler(chat_id: str) -> dict[str, dict[str, Any]]:
     persistence = LocalJsonRepository.create(chat_id)
     service_manager = ServiceManager(persistence)
     active_services = service_manager.fetch_active()
     unhealthy_services = []
     healthy_services = []
     time_down = {}
-    for service in active_services:
-        logger.info(f'name={service.name} status={service.status}')
-        last_time_healthy_initial = service.last_time_healthy
-        service_is_healthy, time_to_first_byte = service.healthcheck_backend.check()
-        if service_is_healthy is False:
-            if service.status != ServiceStatus.UNHEALTHY:
-                unhealthy_services.append(service)
-                service_manager.mark_as_unhealthy(service)
-        else:
-            if service.status != ServiceStatus.HEALTHY:
-                healthy_services.append(service)
-                try:
-                    time_down[service.name] = (
-                        datetime.utcnow().replace(microsecond=0) - last_time_healthy_initial.replace(microsecond=0)
-                    )
-                except (TypeError, AttributeError) as e:
-                    logger.info(f'Something happened while calculating time_down: {e}')
-                service_manager.mark_as_healthy(service)
-            service_manager.update_service_status(service, time_to_first_byte)
+    backend_checks = []
+    async with httpx.AsyncClient() as session:
+        for service in active_services:
+            logger.info(f'name={service.name} status={service.status}')
+            backend_checks.append(service.healthcheck_backend.check(session))
+
+        responses = await asyncio.gather(*backend_checks)
+        for service, (service_is_healthy, time_to_first_byte) in zip(active_services, responses):
+            if service_is_healthy is False:
+                if service.status != ServiceStatus.UNHEALTHY:
+                    unhealthy_services.append(service)
+                    service_manager.mark_as_unhealthy(service)
+            else:
+                if service.status != ServiceStatus.HEALTHY:
+                    healthy_services.append(service)
+                    last_time_healthy_initial = service.last_time_healthy
+                    try:
+                        time_down[service.name] = (
+                            datetime.utcnow().replace(microsecond=0) - last_time_healthy_initial.replace(microsecond=0)
+                        )
+                    except (TypeError, AttributeError) as e:
+                        logger.info(f'Something happened while calculating time_down: {e}')
+                    service_manager.mark_as_healthy(service)
+                service_manager.update_service_status(service, time_to_first_byte)
+
     if unhealthy_services or healthy_services:
         return {
-            chat_id: {'unhealthy': unhealthy_services, 'healthy': healthy_services, 'time_down': {**time_down}}
+            chat_id: {
+                'unhealthy': unhealthy_services,
+                'healthy': healthy_services,
+                'time_down': {**time_down},
+            }
         }
     return {}
 
 
-def chat_services_checker_command_handler() -> Dict[str, Optional[Dict]]:
+async def chat_services_checker_command_handler() -> dict[str, dict]:
     all_chats_fetched_services = {}
     chat_ids = LocalJsonRepository.get_all_chat_ids()
 
     for chat_id in chat_ids:
-        fetched_services = chat_service_checker_command_handler(chat_id)
+        fetched_services = await chat_service_checker_command_handler(chat_id)
         all_chats_fetched_services.update(**fetched_services)
 
     return all_chats_fetched_services
