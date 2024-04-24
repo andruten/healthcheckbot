@@ -3,7 +3,7 @@ import logging
 from socket import AF_INET, SOCK_STREAM, error, socket, timeout
 from typing import Tuple, Optional
 
-import requests
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ class BaseBackend(ABC):
         self.elapsed_total_seconds = None
 
     @abstractmethod
-    def check(self, **kwargs) -> Tuple[bool, Optional[float]]:  # pragma: no cover
+    async def check(self, *args, **kwargs) -> Tuple[bool, Optional[float]]:  # pragma: no cover
         pass
 
 
@@ -36,11 +36,11 @@ class RequestBackend(BaseBackend):
         protocol = 'https' if self.service.port == 443 else 'http'
         return f'{protocol}://{self.service.domain}:{self.service.port}'
 
-    def check(self) -> Tuple[bool, Optional[float]]:
+    async def check(self, session) -> Tuple[bool, Optional[float]]:
         url = self._get_url()
         try:
-            response = requests.get(url)
-        except (requests.exceptions.RequestException, requests.exceptions.HTTPError):
+            response = await session.request(method='GET', url=url)
+        except httpx.HTTPError:
             logger.warning(f'"{url}" request failed')
             return False, None
         else:

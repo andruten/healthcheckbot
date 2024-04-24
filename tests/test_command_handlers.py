@@ -18,7 +18,7 @@ class TestCommandHandlers(unittest.TestCase):
 
     @patch('command_handlers.LocalJsonRepository.create')
     @patch('command_handlers.ServiceManager.fetch_active')
-    def test_chat_service_checker_command_handler(
+    async def test_chat_service_checker_command_handler(
             self,
             mock_service_manager,
             mock_repository_create,
@@ -58,7 +58,7 @@ class TestCommandHandlers(unittest.TestCase):
 
     @patch('command_handlers.LocalJsonRepository.create')
     @patch('command_handlers.ServiceManager.fetch_active')
-    def test_chat_service_checker_command_handler_empty(
+    async def test_chat_service_checker_command_handler_empty(
             self,
             mock_service_manager,
             mock_repository_create,
@@ -69,14 +69,14 @@ class TestCommandHandlers(unittest.TestCase):
             mock_healthcheck_backend.return_value = MagicMock(check=mock_ht_service)
             mock_service_manager.return_value = []
 
-            chat_services = chat_service_checker_command_handler('1234')
+            chat_services = await chat_service_checker_command_handler('1234')
 
         self.assertIsInstance(chat_services, dict)
         self.assertEqual(len(chat_services), 0)
 
     @patch('command_handlers.LocalJsonRepository.create')
     @patch('command_handlers.ServiceManager.fetch_active')
-    def test_chat_service_checker_command_handler_unhealthy(
+    async def test_chat_service_checker_command_handler_unhealthy(
             self,
             mock_service_manager,
             mock_repository_create,
@@ -95,18 +95,18 @@ class TestCommandHandlers(unittest.TestCase):
                 ),
             ]
 
-            chat_services = chat_service_checker_command_handler('1234')
+            chat_services = await chat_service_checker_command_handler('1234')
 
         self.assertIsInstance(chat_services, dict)
         self.assertTrue(len(chat_services), 1)
 
     @patch('command_handlers.LocalJsonRepository.get_all_chat_ids')
     @patch('command_handlers.chat_service_checker_command_handler')
-    def test_chat_services_checker_command_handler(self, mock_chat_handler, mock_chat_ids):
+    async def test_chat_services_checker_command_handler(self, mock_chat_handler, mock_chat_ids):
         mock_chat_handler.side_effect = mock_chat_handler_side_effect
         mock_chat_ids.return_value = ['1234', '5678']
 
-        chat_failing_services = chat_services_checker_command_handler()
+        chat_failing_services = await chat_services_checker_command_handler()
 
         self.assertIsInstance(chat_failing_services, dict)
         self.assertTrue(len(chat_failing_services), 2)

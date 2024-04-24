@@ -1,14 +1,11 @@
 import logging
 import os
-from typing import List, Dict
 
 import environ
-from telegram import ParseMode, Update
-from telegram.ext import CallbackContext, CommandHandler, Updater
+from telegram.ext import ApplicationBuilder, CommandHandler
 
-from command_handlers import (add_service_command_handler, chat_services_checker_command_handler,
-                              list_services_command_handler, remove_services_command_handler)
-from models import HEALTHCHECK_BACKENDS, Service
+from commands import check_all_services, list_services, remove_service, add_service, error
+from filter_allowed_chats import FilterAllowedChats
 
 abspath = os.path.abspath(__file__)
 directory_name = os.path.dirname(abspath)
@@ -17,9 +14,9 @@ os.chdir(directory_name)
 env = environ.Env()
 environ.Env.read_env()
 
+ALLOWED_CHAT_IDS = env.list('ALLOWED_CHAT_IDS', default=[])
 BOT_TOKEN = env.str('BOT_TOKEN')
 POLLING_INTERVAL = env.int('POLLING_INTERVAL', 60)
-ALLOW_LIST_CHAT_IDS = env.list('ALLOW_LIST_CHAT_IDS')
 LOG_LEVEL = logging.DEBUG if env.str('LOG_LEVEL') == 'DEBUG' else logging.INFO
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=LOG_LEVEL)
@@ -27,96 +24,25 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 
-def error(update, context):
-    """Log Errors caused by Updates."""
-    logger.error('Update "%s" caused error "%s"', update, context.error)
-
-
-def check_all_services(context: CallbackContext):
-    chat_fetched_services = chat_services_checker_command_handler()
-
-    for chat_id in chat_fetched_services:
-        fetched_services: Dict[str, List[Service]] = chat_fetched_services[chat_id]
-        unhealthy_service: Service
-        for unhealthy_service in fetched_services['unhealthy']:
-            text = f'{unhealthy_service.name} is down 🤕!'
-            context.bot.send_message(chat_id=chat_id, text=text)
-        healthy_service: Service
-        for healthy_service in fetched_services['healthy']:
-            try:
-                time_down = fetched_services['time_down'][healthy_service.name]
-                suffix = f' after {time_down}'
-            except (KeyError, TypeError) as e:
-                logger.debug(f'Exception occurred: {e}')
-                suffix = ''
-            text = f'{healthy_service.name} is fixed now{suffix} 😅!'
-            context.bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.MARKDOWN)
-
-
-def add_service(update: Update, context: CallbackContext) -> None:
-    if str(update.effective_chat.id) not in ALLOW_LIST_CHAT_IDS:
-        update.message.reply_text('You\'re not allowed to use this command')
-        return
-
-    # Validate arguments
-    if len(context.args) != 4:
-        update.message.reply_text('Please, use /add <service_type> <name> <domain> <port>')
-        return
-
-    service_type, name, domain, port = context.args
-    if service_type.lower() not in HEALTHCHECK_BACKENDS.keys():
-        update.message.reply_text(f'<service_type> must be {", ".join(HEALTHCHECK_BACKENDS.keys())}')
-        return
-    try:
-        port = int(port)
-    except ValueError:
-        update.message.reply_text('<port> must be a number')
-        return
-
-    service = add_service_command_handler(update.effective_chat.id, service_type, name, domain, port)
-
-    update.message.reply_text(f'ok! I\'ve added {service}')
-
-
-def remove_service(update: Update, context: CallbackContext) -> None:
-    if str(update.effective_chat.id) not in ALLOW_LIST_CHAT_IDS:
-        update.message.reply_text('You\'re not allowed to use this command')
-        return
-
-    if len(context.args) != 1:
-        update.message.reply_text('Please, use /remove <name>')
-        return
-    name, = context.args
-
-    remove_services_command_handler(name, str(update.effective_chat.id))
-
-    update.message.reply_text(f'ok! I\'ve removed {name}')
-
-
-def list_services(update: Update, context: CallbackContext) -> None:
-    if str(update.effective_chat.id) not in ALLOW_LIST_CHAT_IDS:
-        update.message.reply_text('You\'re not allowed to use this command')
-        return
-
-    services_str = list_services_command_handler(update.effective_chat.id)
-
-    update.message.reply_text(''.join(services_str), parse_mode=ParseMode.MARKDOWN)
-
-
 def main() -> None:
-    updater = Updater(BOT_TOKEN)
-    dispatcher = updater.dispatcher
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    job = updater.job_queue
-    job.run_repeating(check_all_services, POLLING_INTERVAL)
+    filter_allowed_chats = FilterAllowedChats(ALLOWED_CHAT_IDS)
 
-    dispatcher.add_handler(CommandHandler('add', add_service))
-    dispatcher.add_handler(CommandHandler('remove', remove_service))
-    dispatcher.add_handler(CommandHandler('list', list_services))
-    dispatcher.add_error_handler(error)
+    job_queue = app.job_queue
+    job_queue.run_repeating(check_all_services, POLLING_INTERVAL, first=1)
 
-    updater.start_polling()
-    updater.idle()
+    add_command_handler = CommandHandler('add', add_service, filter_allowed_chats)
+    remove_command_handler = CommandHandler('remove', remove_service, filter_allowed_chats)
+    list_command_handler = CommandHandler('list', list_services, filter_allowed_chats)
+
+    app.add_handler(add_command_handler)
+    app.add_handler(remove_command_handler)
+    app.add_handler(list_command_handler)
+
+    app.add_error_handler(error)
+
+    app.run_polling()
 
 
 if __name__ == '__main__':
