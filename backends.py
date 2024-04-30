@@ -39,9 +39,9 @@ class RequestBackend(BaseBackend):
     async def check(self, session) -> Tuple[bool, Optional[float]]:
         url = self._get_url()
         try:
-            response = await session.request(method='GET', url=url)
+            response = await session.request(method='GET', url=url, timeout=10)
         except httpx.HTTPError:
-            logger.warning(f'"{url}" request failed')
+            logger.warning(f'"{url}" request failed after 10 seconds')
             return False, None
         else:
             elapsed_total_seconds = response.elapsed.total_seconds()
