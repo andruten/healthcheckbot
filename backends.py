@@ -38,8 +38,12 @@ class RequestBackend(BaseBackend):
 
     async def check(self, session) -> Tuple[bool, Optional[float]]:
         url = self._get_url()
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                          '(KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'
+        }
         try:
-            response = await session.request(method='GET', url=url, timeout=10)
+            response = await session.request(method='GET', url=url, timeout=10, headers=headers)
         except httpx.HTTPError:
             logger.warning(f'"{url}" request failed after 10 seconds')
             return False, None
