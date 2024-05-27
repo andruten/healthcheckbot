@@ -11,6 +11,9 @@ from persistence import LocalJsonRepository
 logger = logging.getLogger(__name__)
 
 
+transport = httpx.AsyncHTTPTransport(retries=5)
+
+
 async def chat_service_checker_command_handler(chat_id: str) -> dict[str, dict[str, Any]]:
     persistence = LocalJsonRepository.create(chat_id)
     service_manager = ServiceManager(persistence)
@@ -19,7 +22,7 @@ async def chat_service_checker_command_handler(chat_id: str) -> dict[str, dict[s
     healthy_services = []
     time_down = {}
     backend_checks = []
-    async with httpx.AsyncClient() as session:
+    async with httpx.AsyncClient(transport=transport) as session:
         for service in active_services:
             logger.info(f'name={service.name} status={service.status}')
             backend_checks.append(service.healthcheck_backend.check(session))
