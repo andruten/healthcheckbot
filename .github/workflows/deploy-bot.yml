@@ -31,7 +31,6 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd ${{ secrets.DEPLOY_PATH }}
-            make build
-            docker stop healthcheckbot
-            docker rm -f healthcheckbot
-            make run_detached
+            docker compose build
+            docker compose down
+            docker compose up -d
