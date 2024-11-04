@@ -34,7 +34,7 @@ class SocketBackend(BaseBackend):
 class RequestBackend(BaseBackend):
     def _get_url(self) -> str:
         protocol = 'https' if self.service.port == 443 else 'http'
-        return f'{protocol}://{self.service.domain}:{self.service.port}'
+        return f'{protocol}://{self.service.domain}'
 
     async def check(self, session) -> Tuple[bool, Optional[float]]:
         url = self._get_url()
@@ -43,10 +43,14 @@ class RequestBackend(BaseBackend):
                           '(KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'
         }
         try:
-            response = await session.request(method='GET', url=url, timeout=10, headers=headers)
-        except httpx.HTTPError:
-            logger.warning(f'"{url}" request failed after 10 seconds')
+            logger.debug(f"Fetching {url}")
+            response = await session.request(method='GET', url=url, headers=headers)
+        except (httpx.HTTPError, httpx.InvalidURL, httpx.CookieConflict, httpx.StreamError) as exc:
+            logger.warning(f'"{url}" request failed {exc}')
             return False, None
+        except Exception as exc:
+            logger.warning(f"Exception running {exc}")
         else:
             elapsed_total_seconds = response.elapsed.total_seconds()
+            logger.debug(f"{url} fetched in {elapsed_total_seconds}")
             return not (500 <= response.status_code <= 511), elapsed_total_seconds
