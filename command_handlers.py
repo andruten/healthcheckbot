@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 from typing import Any
 
@@ -11,7 +11,8 @@ from persistence import LocalJsonRepository
 logger = logging.getLogger(__name__)
 
 
-transport = httpx.AsyncHTTPTransport(retries=5)
+transport = httpx.AsyncHTTPTransport(retries=3)
+timeout = httpx.Timeout(5, read=None)
 
 
 async def chat_service_checker_command_handler(chat_id: str) -> dict[str, dict[str, Any]]:
@@ -22,29 +23,31 @@ async def chat_service_checker_command_handler(chat_id: str) -> dict[str, dict[s
     healthy_services = []
     time_down = {}
     backend_checks = []
-    async with httpx.AsyncClient(transport=transport) as session:
+    async with httpx.AsyncClient(transport=transport, timeout=timeout) as session:
         for service in active_services:
-            logger.info(f'name={service.name} status={service.status}')
+            logger.info(f'name={service.name} status={service.status.value}')
             backend_checks.append(service.healthcheck_backend.check(session))
 
         responses = await asyncio.gather(*backend_checks)
+        services = []
         for service, (service_is_healthy, time_to_first_byte) in zip(active_services, responses):
             if service_is_healthy is False:
                 if service.status != ServiceStatus.UNHEALTHY:
                     unhealthy_services.append(service)
-                    service_manager.mark_as_unhealthy(service)
             else:
                 if service.status != ServiceStatus.HEALTHY:
                     healthy_services.append(service)
                     last_time_healthy_initial = service.last_time_healthy
                     try:
                         time_down[service.name] = (
-                            datetime.utcnow().replace(microsecond=0) - last_time_healthy_initial.replace(microsecond=0)
+                            datetime.now(timezone.utc).replace(microsecond=0)
+                            - last_time_healthy_initial.replace(microsecond=0)
                         )
                     except (TypeError, AttributeError) as e:
                         logger.info(f'Something happened while calculating time_down: {e}')
-                    service_manager.mark_as_healthy(service)
-                service_manager.update_service_status(service, time_to_first_byte)
+                service.time_to_first_byte = time_to_first_byte
+            services.append(service.to_dict())
+        service_manager.update(services)
 
     if unhealthy_services or healthy_services:
         return {

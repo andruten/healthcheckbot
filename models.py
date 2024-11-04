@@ -2,6 +2,7 @@ import datetime
 import enum
 from dataclasses import asdict, dataclass, field
 import logging
+from datetime import timezone
 from typing import Dict, List, Optional
 
 from backends import BaseBackend, RequestBackend, SocketBackend
@@ -63,7 +64,7 @@ class ServiceManager:
         self.persistence_backend = persistence_backend
 
     def update_service_status(self, service: Service, time_to_first_byte):
-        service.last_time_healthy = datetime.datetime.utcnow()
+        service.last_time_healthy = datetime.datetime.now(timezone.utc)
         service.time_to_first_byte = time_to_first_byte
         self.persistence_backend.update(service.to_dict())
 
@@ -74,6 +75,9 @@ class ServiceManager:
     def mark_as_unhealthy(self, service: Service):
         service.status = ServiceStatus.UNHEALTHY
         self.persistence_backend.update(service.to_dict())
+
+    def update(self, services: List[Dict]):
+        self.persistence_backend.bulk_update(services)
 
     def fetch_all(self) -> List[Service]:
         services = []

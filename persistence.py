@@ -32,6 +32,10 @@ class BaseRepository(ABC):
     def update(self, service_to_update: Dict):  # pragma: no cover
         pass
 
+    @abstractmethod
+    def bulk_update(self, services_to_update: List[Dict]):  # pragma: no cover
+        pass
+
 
 class LocalJsonRepository(BaseRepository):
 
@@ -74,6 +78,9 @@ class LocalJsonRepository(BaseRepository):
     def remove(self, name: str):
         services_data = [item for item in self.fetch_all() if item['name'].lower() != name.lower()]
         self._save(services_data)
+
+    def bulk_update(self, services_to_update: List[Dict]):
+        self._save(services_to_update)
 
     def update(self, service_to_update: Dict):
         all_services = self.fetch_all()
