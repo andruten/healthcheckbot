@@ -27,27 +27,27 @@ async def chat_service_checker_command_handler(chat_id: str) -> dict[str, dict[s
         for service in active_services:
             logger.info(f'name={service.name} status={service.status.value}')
             backend_checks.append(service.healthcheck_backend.check(session))
-
         responses = await asyncio.gather(*backend_checks)
-        services = []
-        for service, (service_is_healthy, time_to_first_byte) in zip(active_services, responses):
-            if service_is_healthy is False:
-                if service.status != ServiceStatus.UNHEALTHY:
-                    unhealthy_services.append(service)
-            else:
-                if service.status != ServiceStatus.HEALTHY:
-                    healthy_services.append(service)
-                    last_time_healthy_initial = service.last_time_healthy
-                    try:
-                        time_down[service.name] = (
-                            datetime.now(timezone.utc).replace(microsecond=0)
-                            - last_time_healthy_initial.replace(microsecond=0)
-                        )
-                    except (TypeError, AttributeError) as e:
-                        logger.info(f'Something happened while calculating time_down: {e}')
-                service.time_to_first_byte = time_to_first_byte
-            services.append(service.to_dict())
-        service_manager.update(services)
+    services = []
+    for service, (service_is_healthy, time_to_first_byte, expire_date) in zip(active_services, responses):
+        if service_is_healthy is False:
+            if service.status != ServiceStatus.UNHEALTHY:
+                unhealthy_services.append(service)
+        else:
+            if service.status != ServiceStatus.HEALTHY:
+                healthy_services.append(service)
+                last_time_healthy_initial = service.last_time_healthy
+                try:
+                    time_down[service.name] = (
+                        datetime.now(timezone.utc).replace(microsecond=0)
+                        - last_time_healthy_initial.replace(microsecond=0)
+                    )
+                except (TypeError, AttributeError) as e:
+                    logger.info(f'Something happened while calculating time_down: {e}')
+            service.time_to_first_byte = time_to_first_byte
+            service.expire_date = expire_date
+        services.append(service.to_dict())
+    service_manager.update(services)
 
     if unhealthy_services or healthy_services:
         return {
@@ -89,10 +89,11 @@ def list_services_command_handler(chat_id: str) -> str:
     result = ''
     for service in all_services:
         result += '\n\n'
-        result += f'name: `{service.name}`\n'
-        result += f'status: `{service.status.value}`'
+        result += f'`{service.name}` is **{service.status.value}**'
         if service.status == ServiceStatus.HEALTHY and service.time_to_first_byte is not None:
-            result += f'\nresponse time: `{service.time_to_first_byte}`'
+            result += f'\nttfb: `{service.time_to_first_byte}`'
         elif service.status == ServiceStatus.UNHEALTHY and service.last_time_healthy is not None:
-            result += f'\nlast time healthy: `{service.last_time_healthy.strftime("%m/%d/%Y %H:%M:%S")}`'
+            result += f'\nLast time healthy: `{service.last_time_healthy.strftime("%d/%m/%Y %H:%M:%S")}`'
+        if service.expire_date is not None:
+            result += f'\nCert expires: `{service.expire_date.strftime("%d/%m/%Y %H:%M:%S")}`'
     return result

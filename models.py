@@ -1,8 +1,7 @@
-import datetime
 import enum
 from dataclasses import asdict, dataclass, field
 import logging
-from datetime import timezone
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from backends import BaseBackend, RequestBackend, SocketBackend
@@ -26,7 +25,7 @@ def service_asdict_factory(data):
     def convert_value(obj):
         if isinstance(obj, ServiceStatus):
             return obj.value
-        elif isinstance(obj, datetime.datetime):
+        elif isinstance(obj, datetime):
             return obj.strftime('%Y-%m-%dT%H:%M:%S.%f')
         return obj
 
@@ -40,9 +39,10 @@ class Service:
     domain: str = field()
     port: int = field()
     enabled: bool = field(default=True)
-    last_time_healthy: Optional[datetime.datetime] = field(default=None)
+    last_time_healthy: Optional[datetime] = field(default=None)
     time_to_first_byte: float = field(default=0.0)
     status: ServiceStatus = field(init=True, default=ServiceStatus.UNKNOWN)
+    expire_date: Optional[datetime] = field(default=None)
 
     @property
     def healthcheck_backend(self) -> BaseBackend:
@@ -64,7 +64,7 @@ class ServiceManager:
         self.persistence_backend = persistence_backend
 
     def update_service_status(self, service: Service, time_to_first_byte):
-        service.last_time_healthy = datetime.datetime.now(timezone.utc)
+        service.last_time_healthy = datetime.now(timezone.utc)
         service.time_to_first_byte = time_to_first_byte
         self.persistence_backend.update(service.to_dict())
 
@@ -85,8 +85,15 @@ class ServiceManager:
             status = service_data.pop('status')
             service_status = ServiceStatus(status)
             try:
-                service_data['last_time_healthy'] = datetime.datetime.strptime(
+                service_data['last_time_healthy'] = datetime.strptime(
                     service_data['last_time_healthy'],
+                    '%Y-%m-%dT%H:%M:%S.%f'
+                )
+            except (TypeError, KeyError) as e:
+                logger.debug(f'Exception occurred {e}')
+            try:
+                service_data['expire_date'] = datetime.strptime(
+                    service_data['expire_date'],
                     '%Y-%m-%dT%H:%M:%S.%f'
                 )
             except (TypeError, KeyError) as e:
