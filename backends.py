@@ -45,11 +45,9 @@ class RequestBackend(BaseBackend):
         try:
             logger.debug(f"Fetching {url}")
             response = await session.request(method='GET', url=url, headers=headers)
-        except (httpx.HTTPError, httpx.InvalidURL, httpx.CookieConflict, httpx.StreamError) as exc:
+        except httpx.HTTPError as exc:
             logger.warning(f'"{url}" request failed {exc}')
             return False, None, None
-        except Exception as exc:
-            logger.warning(f"Exception running {exc}")
         else:
             raw_stream = response.extensions['network_stream']
             ssl_object = raw_stream.get_extra_info('ssl_object')
