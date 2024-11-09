@@ -5,6 +5,7 @@ from socket import AF_INET, SOCK_STREAM, error, socket, timeout
 from typing import Tuple, Optional
 
 import httpx
+import ssl
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ class RequestBackend(BaseBackend):
         try:
             logger.debug(f"Fetching {url}")
             response = await session.request(method='GET', url=url, headers=headers)
-        except httpx.HTTPError as exc:
+        except (httpx.HTTPError, ssl.SSLCertVerificationError, ) as exc:
             logger.warning(f'"{url}" request failed {exc}')
             return False, None, None
         else:
