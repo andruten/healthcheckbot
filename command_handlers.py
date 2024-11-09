@@ -90,7 +90,7 @@ def list_services_command_handler(chat_id: str) -> str:
     result = ''
     for service in all_services:
         result += '\n\n'
-        result += f'`{service.name}` is **{service.status.value}**'
+        result += f'`{service.name}` is {service.status.value.upper()}'
         if service.status == ServiceStatus.HEALTHY and service.time_to_first_byte is not None:
             result += f'\nttfb: `{service.time_to_first_byte}`'
         elif service.status == ServiceStatus.UNHEALTHY and service.last_time_healthy is not None:
