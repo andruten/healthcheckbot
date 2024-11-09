@@ -30,18 +30,19 @@ async def chat_service_checker_command_handler(chat_id: str) -> dict[str, dict[s
         responses = await asyncio.gather(*backend_checks)
     services = []
     for service, (service_is_healthy, time_to_first_byte, expire_date) in zip(active_services, responses):
+        initial_service_status = service.status
         if service_is_healthy is False:
-            if service.status != ServiceStatus.UNHEALTHY:
-                service.status = ServiceStatus.UNHEALTHY
+            service.status = ServiceStatus.UNHEALTHY
+            if initial_service_status != ServiceStatus.UNHEALTHY:
                 unhealthy_services.append(service)
         else:
-            if service.status != ServiceStatus.HEALTHY:
-                service.status = ServiceStatus.HEALTHY
+            service.status = ServiceStatus.HEALTHY
+            if initial_service_status != ServiceStatus.HEALTHY:
                 healthy_services.append(service)
-                last_time_healthy_initial = service.last_time_healthy.replace(microsecond=0)
                 now_utc = datetime.now(timezone.utc).replace(microsecond=0)
+                last_time_healthy_initial = service.last_time_healthy
                 try:
-                    time_down[service.name] = now_utc - last_time_healthy_initial
+                    time_down[service.name] = now_utc - last_time_healthy_initial.replace(microsecond=0)
                 except (TypeError, AttributeError) as e:
                     logger.info(f'Couldn\'t calculate time_down in {service}: {e}')
             service.time_to_first_byte = time_to_first_byte
