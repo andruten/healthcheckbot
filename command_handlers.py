@@ -37,14 +37,17 @@ async def chat_service_checker_command_handler(chat_id: str) -> dict[str, dict[s
                 unhealthy_services.append(service)
         else:
             service.status = ServiceStatus.HEALTHY
+            now_utc = datetime.now(timezone.utc).replace(tzinfo=None).replace(microsecond=0)
             if initial_service_status != ServiceStatus.HEALTHY:
                 healthy_services.append(service)
-                now_utc = datetime.now(timezone.utc).replace(microsecond=0)
                 last_time_healthy_initial = service.last_time_healthy
                 try:
-                    time_down[service.name] = now_utc - last_time_healthy_initial.replace(microsecond=0)
+                    time_down[service.name] = (
+                        now_utc - last_time_healthy_initial.replace(microsecond=0)
+                    )
                 except (TypeError, AttributeError) as e:
                     logger.info(f'Couldn\'t calculate time_down in {service}: {e}')
+            service.last_time_healthy = now_utc
             service.time_to_first_byte = time_to_first_byte
             service.expire_date = expire_date
         services.append(service.to_dict())
