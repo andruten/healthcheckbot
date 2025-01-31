@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 import logging
 from datetime import datetime
 from typing import Tuple, Optional
@@ -6,16 +5,9 @@ from typing import Tuple, Optional
 import httpx
 import ssl
 
+from .base_backend import BaseBackend
+
 logger = logging.getLogger(__name__)
-
-
-class BaseBackend(ABC):
-    def __init__(self, service) -> None:
-        self.service = service
-
-    @abstractmethod
-    async def check(self, *args, **kwargs) -> Tuple[bool, Optional[float], Optional[datetime], Optional[int]]:  # pragma: no cover
-        pass
 
 
 class RequestBackend(BaseBackend):

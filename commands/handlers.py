@@ -5,7 +5,8 @@ from typing import Any
 
 import httpx
 
-from models import Service, ServiceManager, ServiceStatus
+from models import Service, ServiceStatus
+from repositories import ServiceRepository
 from persistence import LocalJsonRepository
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ timeout = httpx.Timeout(5, read=None)
 
 async def chat_service_checker_command_handler(chat_id: str) -> dict[str, dict[str, Any]]:
     persistence = LocalJsonRepository.create(chat_id)
-    service_manager = ServiceManager(persistence)
+    service_manager = ServiceRepository(persistence)
     active_services = service_manager.fetch_active()
     unhealthy_services = []
     healthy_services = []
@@ -79,17 +80,17 @@ async def chat_services_checker_command_handler() -> dict[str, dict]:
 
 def add_service_command_handler(chat_id, name, url) -> Service:
     persistence = LocalJsonRepository.create(chat_id)
-    return ServiceManager(persistence).add(name, url)
+    return ServiceRepository(persistence).add(name, url)
 
 
 def remove_services_command_handler(name, chat_id: str) -> None:
     persistence = LocalJsonRepository.create(chat_id)
-    ServiceManager(persistence).remove(name)
+    ServiceRepository(persistence).remove(name)
 
 
 def list_services_command_handler(chat_id: str) -> str:
     persistence = LocalJsonRepository.create(chat_id)
-    all_services = ServiceManager(persistence).fetch_all()
+    all_services = ServiceRepository(persistence).fetch_all()
     if not all_services:
         return 'There is nothing to see here'
     result = ''

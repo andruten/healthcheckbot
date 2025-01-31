@@ -1,7 +1,8 @@
 import unittest
 from unittest.mock import MagicMock
 
-from models import ServiceManager, ServiceStatus, Service
+from models import ServiceStatus, Service
+from repositories import ServiceRepository
 
 
 class TestServices(unittest.TestCase):
@@ -9,7 +10,7 @@ class TestServices(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         mock_persistence_backend = MagicMock()
-        self.service_manager = ServiceManager(mock_persistence_backend)
+        self.service_manager = ServiceRepository(mock_persistence_backend)
 
     def test_mark_as_healthy(self):
         mock_service = MagicMock()
