@@ -8,5 +8,9 @@ class BaseBackend(ABC):
         self.service = service
 
     @abstractmethod
-    async def check(self, *args, **kwargs) -> Tuple[bool, Optional[float], Optional[datetime], Optional[int]]:  # pragma: no cover
+    async def check(
+            self,
+            *args,
+            **kwargs,
+    ) -> Tuple[bool, Optional[float], Optional[datetime], Optional[int]]:  # pragma: no cover
         pass

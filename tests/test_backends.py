@@ -1,5 +1,4 @@
 import unittest
-from socket import error, timeout
 from unittest.mock import MagicMock, patch
 
 import httpx

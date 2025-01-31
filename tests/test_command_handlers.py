@@ -2,8 +2,8 @@ import unittest
 from unittest.mock import MagicMock, PropertyMock, patch
 
 from commands.handlers import (add_service_command_handler, chat_service_checker_command_handler,
-                              chat_services_checker_command_handler,
-                              list_services_command_handler, remove_services_command_handler)
+                               chat_services_checker_command_handler,
+                               list_services_command_handler, remove_services_command_handler)
 from models import Service, ServiceStatus
 
 
