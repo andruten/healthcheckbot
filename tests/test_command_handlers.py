@@ -114,10 +114,10 @@ class TestCommandHandlers(unittest.TestCase):
     @patch('command_handlers.LocalJsonRepository.create')
     @patch('command_handlers.ServiceManager.add')
     def test_add_service_command_handler(self, mock_service_manager_add, mock_repository_create):
-        mock_service_manager_add.return_value = Service('request', 'test', 'test.com', 443)
+        mock_service_manager_add.return_value = Service('test', 'test.com')
         mock_repository_create.return_value = MagicMock()
 
-        service = add_service_command_handler('1234', 'request', 'test', 'test.com', 443)
+        service = add_service_command_handler('1234', 'test', 'test.com')
 
         self.assertIsInstance(service, Service)
         mock_service_manager_add.assert_called_once()
@@ -138,9 +138,9 @@ class TestCommandHandlers(unittest.TestCase):
     @patch('command_handlers.ServiceManager.fetch_all')
     def test_list_services_command_handler(self, mock_fetch_all, mock_repository_create):
         mock_fetch_all.return_value = [
-            Service(service_type='request', name='test', domain='test.com', port=443, status=ServiceStatus.HEALTHY),
-            Service(service_type='request', name='test2', domain='test2.com', port=443, status=ServiceStatus.UNHEALTHY),
-            Service(service_type='socket', name='test3', domain='test3', port=4442, status=ServiceStatus.UNKNOWN),
+            Service(name='test', url='test.com', status=ServiceStatus.HEALTHY),
+            Service(name='test2', url='test2.com', status=ServiceStatus.UNHEALTHY),
+            Service(name='test3', url='test3', status=ServiceStatus.UNKNOWN),
         ]
         mock_repository_create.return_value = MagicMock()
         services = list_services_command_handler('1234')

@@ -29,8 +29,9 @@ async def chat_service_checker_command_handler(chat_id: str) -> dict[str, dict[s
             backend_checks.append(service.healthcheck_backend.check(session))
         responses = await asyncio.gather(*backend_checks)
     services = []
-    for service, (service_is_healthy, time_to_first_byte, expire_date) in zip(active_services, responses):
+    for service, (service_is_healthy, time_to_first_byte, expire_date, http_status) in zip(active_services, responses):
         initial_service_status = service.status
+        service.last_http_response_status_code = http_status
         if service_is_healthy is False:
             service.status = ServiceStatus.UNHEALTHY
             if initial_service_status != ServiceStatus.UNHEALTHY:
@@ -50,6 +51,7 @@ async def chat_service_checker_command_handler(chat_id: str) -> dict[str, dict[s
             service.last_time_healthy = now_utc
             service.time_to_first_byte = time_to_first_byte
             service.expire_date = expire_date
+            service.last_http_response_status_code = http_status
         services.append(service.to_dict())
     service_manager.update(services)
 
@@ -75,9 +77,9 @@ async def chat_services_checker_command_handler() -> dict[str, dict]:
     return all_chats_fetched_services
 
 
-def add_service_command_handler(chat_id, service_type, name, domain, port) -> Service:
+def add_service_command_handler(chat_id, name, url) -> Service:
     persistence = LocalJsonRepository.create(chat_id)
-    return ServiceManager(persistence).add(service_type, name, domain, port)
+    return ServiceManager(persistence).add(name, url)
 
 
 def remove_services_command_handler(name, chat_id: str) -> None:
@@ -94,6 +96,7 @@ def list_services_command_handler(chat_id: str) -> str:
     for service in all_services:
         result += '\n\n'
         result += f'`{service.name}` is {service.status.value.upper()}'
+        result += f'\nHTTP status code: `{service.last_http_response_status_code}`'
         if service.status == ServiceStatus.HEALTHY and service.time_to_first_byte is not None:
             result += f'\nttfb: `{service.time_to_first_byte}`'
         elif service.status == ServiceStatus.UNHEALTHY and service.last_time_healthy is not None:

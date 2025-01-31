@@ -4,15 +4,10 @@ import logging
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
-from backends import BaseBackend, RequestBackend, SocketBackend
+from backends import BaseBackend, RequestBackend
 from persistence import BaseRepository
 
 logger = logging.getLogger(__name__)
-
-HEALTHCHECK_BACKENDS = {
-    'socket': SocketBackend,
-    'request': RequestBackend,
-}
 
 
 class ServiceStatus(enum.Enum):
@@ -34,25 +29,24 @@ def service_asdict_factory(data):
 
 @dataclass
 class Service:
-    service_type: str = field()
     name: str = field()
-    domain: str = field()
-    port: int = field()
+    url: str = field()
     enabled: bool = field(default=True)
     last_time_healthy: Optional[datetime] = field(default=None)
+    last_http_response_status_code: Optional[int] = field(default=None)
     time_to_first_byte: float = field(default=0.0)
     status: ServiceStatus = field(init=True, default=ServiceStatus.UNKNOWN)
     expire_date: Optional[datetime] = field(default=None)
 
     @property
     def healthcheck_backend(self) -> BaseBackend:
-        return HEALTHCHECK_BACKENDS[self.service_type](self)
+        return RequestBackend(self)
 
     def __repr__(self) -> str:  # pragma: no cover
-        return f'{self.name} <{self.domain}:{self.port}>'
+        return f'{self.name} <{self.url}>'
 
     def __str__(self) -> str:  # pragma: no cover
-        return f'{self.name} <{self.domain}>'
+        return f'{self.name} <{self.url}>'
 
     def to_dict(self) -> Dict:
         return asdict(self, dict_factory=service_asdict_factory)
@@ -104,8 +98,8 @@ class ServiceManager:
     def fetch_active(self) -> List[Service]:
         return [service for service in self.fetch_all() if service.enabled is True]
 
-    def add(self, service_type: str, name: str, domain: str, port: int, enabled: bool = True) -> Service:
-        service = Service(service_type.lower(), name, domain, int(port), enabled)
+    def add(self, name: str, url: str) -> Service:
+        service = Service(name, url, )
         self.persistence_backend.add(service.to_dict())
         return service
 

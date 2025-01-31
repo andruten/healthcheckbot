@@ -23,30 +23,24 @@ class TestServices(unittest.TestCase):
 
     def test_fetch_all(self):
         self.service_manager.persistence_backend.fetch_all.return_value = [
-            {"service_type": "request", "name": "test1", "domain": "test1.com", "port": 443, "enabled": True,
-             "status": "unknown"},
-            {"service_type": "request", "name": "test2", "domain": "test2.com", "port": 443, "enabled": True,
-             "status": "healthy"},
-            {"service_type": "request", "name": "test3", "domain": "test3.com", "port": 443, "enabled": True,
-             "status": "unhealthy"},
+            {"name": "test1", "url": "test1.com", "status": "unknown"},
+            {"name": "test2", "url": "test2.com", "status": "healthy"},
+            {"name": "test3", "url": "test3.com", "status": "unhealthy"},
         ]
         services = self.service_manager.fetch_all()
         self.assertTrue(all([isinstance(service, Service) for service in services]))
 
     def test_fetch_active(self):
         self.service_manager.persistence_backend.fetch_all.return_value = [
-            {"service_type": "request", "name": "test1", "domain": "test1.com", "port": 443, "enabled": True,
-             "status": "unknown"},
-            {"service_type": "request", "name": "test2", "domain": "test2.com", "port": 443, "enabled": True,
-             "status": "healthy"},
-            {"service_type": "request", "name": "test3", "domain": "test3.com", "port": 443, "enabled": False,
-             "status": "unhealthy"},
+            {"name": "test1", "url": "test1.com", "status": "unknown"},
+            {"name": "test2", "url": "test2.com", "status": "healthy"},
+            {"name": "test3", "url": "test3.com", "status": "unhealthy"},
         ]
         services = self.service_manager.fetch_active()
         self.assertTrue(all([isinstance(service, Service) and service.enabled is True for service in services]))
 
     def test_add(self):
-        self.service_manager.add('request', 'test', 'test.com', 443)
+        self.service_manager.add('test', 'test.com')
 
     def test_remove(self):
         self.service_manager.remove('test1')

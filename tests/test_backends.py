@@ -4,40 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import httpx
 
-from backends import RequestBackend, SocketBackend
-
-
-@patch('backends.socket')
-class TestSocketBackend(unittest.TestCase):
-
-    def setUp(self) -> None:
-        super().setUp()
-        service = MagicMock(domain='fake', port=456)
-        self.backend = SocketBackend(service)
-
-    def test_success(self, mock_socket):
-        mock_socket.return_value.connect_ex.return_value = 0
-
-        is_healthy, time_to_first_byte, expire_date = self.backend.check()
-        self.assertTrue(is_healthy)
-
-    def test_error(self, mock_socket):
-        mock_socket.return_value.connect_ex.return_value = 1
-
-        is_healthy, time_to_first_byte, expire_date = self.backend.check()
-        self.assertFalse(is_healthy)
-
-    def test_error_exception(self, mock_socket):
-        mock_socket.return_value.connect_ex.side_effect = error
-
-        is_healthy, time_to_first_byte, expire_date = self.backend.check()
-        self.assertFalse(is_healthy)
-
-    def test_timeout_exception(self, mock_socket):
-        mock_socket.return_value.connect_ex.side_effect = timeout
-
-        is_healthy, time_to_first_byte, expire_date = self.backend.check()
-        self.assertFalse(is_healthy)
+from backends import RequestBackend
 
 
 class TestRequestBackend(unittest.TestCase):
