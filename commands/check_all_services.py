@@ -4,7 +4,7 @@ from typing import Dict, List
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
-from command_handlers import chat_services_checker_command_handler
+from commands.handlers import chat_services_checker_command_handler
 from models import Service
 
 logger = logging.getLogger(__name__)

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, PropertyMock, patch
 
-from command_handlers import (add_service_command_handler, chat_service_checker_command_handler,
+from commands.handlers import (add_service_command_handler, chat_service_checker_command_handler,
                               chat_services_checker_command_handler,
                               list_services_command_handler, remove_services_command_handler)
 from models import Service, ServiceStatus
@@ -16,8 +16,8 @@ def mock_chat_handler_side_effect(*args, **kwargs):
 
 class TestCommandHandlers(unittest.TestCase):
 
-    @patch('command_handlers.LocalJsonRepository.create')
-    @patch('command_handlers.ServiceManager.fetch_active')
+    @patch('commands.handlers.LocalJsonRepository.create')
+    @patch('commands.handlers.ServiceManager.fetch_active')
     async def test_chat_service_checker_command_handler(
             self,
             mock_service_manager,
@@ -56,8 +56,8 @@ class TestCommandHandlers(unittest.TestCase):
         self.assertIsInstance(chat_services, dict)
         self.assertTrue(len(chat_services), 1)
 
-    @patch('command_handlers.LocalJsonRepository.create')
-    @patch('command_handlers.ServiceManager.fetch_active')
+    @patch('commands.handlers.LocalJsonRepository.create')
+    @patch('commands.handlers.ServiceManager.fetch_active')
     async def test_chat_service_checker_command_handler_empty(
             self,
             mock_service_manager,
@@ -74,8 +74,8 @@ class TestCommandHandlers(unittest.TestCase):
         self.assertIsInstance(chat_services, dict)
         self.assertEqual(len(chat_services), 0)
 
-    @patch('command_handlers.LocalJsonRepository.create')
-    @patch('command_handlers.ServiceManager.fetch_active')
+    @patch('commands.handlers.LocalJsonRepository.create')
+    @patch('commands.handlers.ServiceManager.fetch_active')
     async def test_chat_service_checker_command_handler_unhealthy(
             self,
             mock_service_manager,
@@ -100,8 +100,8 @@ class TestCommandHandlers(unittest.TestCase):
         self.assertIsInstance(chat_services, dict)
         self.assertTrue(len(chat_services), 1)
 
-    @patch('command_handlers.LocalJsonRepository.get_all_chat_ids')
-    @patch('command_handlers.chat_service_checker_command_handler')
+    @patch('commands.handlers.LocalJsonRepository.get_all_chat_ids')
+    @patch('commands.handlers.chat_service_checker_command_handler')
     async def test_chat_services_checker_command_handler(self, mock_chat_handler, mock_chat_ids):
         mock_chat_handler.side_effect = mock_chat_handler_side_effect
         mock_chat_ids.return_value = ['1234', '5678']
@@ -111,8 +111,8 @@ class TestCommandHandlers(unittest.TestCase):
         self.assertIsInstance(chat_failing_services, dict)
         self.assertTrue(len(chat_failing_services), 2)
 
-    @patch('command_handlers.LocalJsonRepository.create')
-    @patch('command_handlers.ServiceManager.add')
+    @patch('commands.handlers.LocalJsonRepository.create')
+    @patch('commands.handlers.ServiceManager.add')
     def test_add_service_command_handler(self, mock_service_manager_add, mock_repository_create):
         mock_service_manager_add.return_value = Service('test', 'test.com')
         mock_repository_create.return_value = MagicMock()
@@ -123,8 +123,8 @@ class TestCommandHandlers(unittest.TestCase):
         mock_service_manager_add.assert_called_once()
         mock_repository_create.assert_called_once()
 
-    @patch('command_handlers.ServiceManager.remove')
-    @patch('command_handlers.LocalJsonRepository.create')
+    @patch('commands.handlers.ServiceManager.remove')
+    @patch('commands.handlers.LocalJsonRepository.create')
     def test_remove_services_command_handler(self, mock_service_manager_remove, mock_repository_create):
         mock_service_manager_remove.return_value = True
         mock_repository_create.return_value = MagicMock()
@@ -134,8 +134,8 @@ class TestCommandHandlers(unittest.TestCase):
         mock_service_manager_remove.assert_called_once()
         mock_repository_create.assert_called_once()
 
-    @patch('command_handlers.LocalJsonRepository.create')
-    @patch('command_handlers.ServiceManager.fetch_all')
+    @patch('commands.handlers.LocalJsonRepository.create')
+    @patch('commands.handlers.ServiceManager.fetch_all')
     def test_list_services_command_handler(self, mock_fetch_all, mock_repository_create):
         mock_fetch_all.return_value = [
             Service(name='test', url='test.com', status=ServiceStatus.HEALTHY),

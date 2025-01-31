@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
-from command_handlers import list_services_command_handler
+from commands.handlers import list_services_command_handler
 
 
 async def list_services(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

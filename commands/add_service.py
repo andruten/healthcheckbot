@@ -2,7 +2,7 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from command_handlers import add_service_command_handler
+from commands.handlers import add_service_command_handler
 
 
 logger = logging.getLogger(__name__)

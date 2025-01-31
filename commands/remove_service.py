@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from command_handlers import remove_services_command_handler
+from commands.handlers import remove_services_command_handler
 
 
 async def remove_service(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

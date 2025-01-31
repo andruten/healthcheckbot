@@ -7,7 +7,7 @@ from telegram.ext.filters import MessageFilter
 logger = logging.getLogger(__name__)
 
 
-class FilterAllowedChats(MessageFilter):
+class AllowedChatsMessageFilter(MessageFilter):
 
     def __init__(self, allowed_chat_ids: List[str]):
         super().__init__()

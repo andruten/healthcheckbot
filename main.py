@@ -5,7 +5,7 @@ import environ
 from telegram.ext import ApplicationBuilder, CommandHandler
 
 from commands import check_all_services, list_services, remove_service, add_service, error
-from filter_allowed_chats import FilterAllowedChats
+from filters.allowed_chats import AllowedChatsMessageFilter
 
 abspath = os.path.abspath(__file__)
 directory_name = os.path.dirname(abspath)
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 def main() -> None:
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    filter_allowed_chats = FilterAllowedChats(ALLOWED_CHAT_IDS)
+    filter_allowed_chats = AllowedChatsMessageFilter(ALLOWED_CHAT_IDS)
 
     job_queue = app.job_queue
     job_queue.run_repeating(check_all_services, POLLING_INTERVAL, first=1)
