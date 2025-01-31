@@ -17,8 +17,10 @@ async def check_all_services(context: ContextTypes.DEFAULT_TYPE):
         fetched_services: Dict[str, List[Service]] = chat_fetched_services[chat_id]
         unhealthy_service: Service
         for unhealthy_service in fetched_services['unhealthy']:
-            text = (f'{unhealthy_service.name} is down 🤕! '
-                    f'\n HTTP_STATUS_CODE=`{unhealthy_service.last_http_response_status_code}`')
+            text = (
+                f'{unhealthy_service.name} is down 🤕! '
+                f'\n `HTTP_STATUS_CODE={unhealthy_service.last_http_response_status_code}`'
+            )
             await context.bot.send_message(chat_id=chat_id, text=text)
         healthy_service: Service
         for healthy_service in fetched_services['healthy']:
@@ -28,5 +30,8 @@ async def check_all_services(context: ContextTypes.DEFAULT_TYPE):
             except (KeyError, TypeError) as e:
                 logger.debug(f'Exception occurred: {e}')
                 suffix = ''
-            text = f'{healthy_service.name} is fixed now{suffix} 😅!'
+            text = (
+                f'{healthy_service.name} is fixed now{suffix} 😅!'
+                f'\n `HTTP_STATUS_CODE={healthy_service.last_http_response_status_code}`'
+            )
             await context.bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.MARKDOWN)
