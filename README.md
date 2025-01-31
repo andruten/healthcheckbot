@@ -1,7 +1,7 @@
 # Health check bot
 
 Welcome to Health check bot 👋!! I'm a python bot for telegram which intends to implement a (very basic) healthcheck
-system. I can make HTTP requests or open Sockets.
+system. I perform HTTP requests and I'll let you know if your service is healthy :).
 
 ## Available commands
 
@@ -14,12 +14,10 @@ List all polling services
 ### add
 Add new service to the polling list
 ```
-/add <service_type> <name> <domain> <port>
+/add <name> <url>
 ```
-- `service_type` must be "socket" or "request"
 - `name` is the name that will be stored
-- `domain` is the domain that will be reached by the service 
-- `port` is the port number 
+- `url` is the url that will be reached by the service 
 
 ### remove
 Unsubscribe a service from the polling list by name

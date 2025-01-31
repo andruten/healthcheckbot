@@ -1,40 +1,13 @@
 import json
 import logging
-from abc import ABC, abstractmethod
 from json import JSONDecodeError
 from os import listdir
 from os.path import isfile, join, splitext
 from typing import Dict, List
 
+from .base_persistence import BaseRepository
+
 logger = logging.getLogger(__name__)
-
-
-class BaseRepository(ABC):
-
-    @classmethod
-    @abstractmethod
-    def create(cls, chat_id: str):  # pragma: no cover
-        pass
-
-    @abstractmethod
-    def fetch_all(self):  # pragma: no cover
-        pass
-
-    @abstractmethod
-    def add(self, data_to_append: Dict):  # pragma: no cover
-        pass
-
-    @abstractmethod
-    def remove(self, name: str):  # pragma: no cover
-        pass
-
-    @abstractmethod
-    def update(self, service_to_update: Dict):  # pragma: no cover
-        pass
-
-    @abstractmethod
-    def bulk_update(self, services_to_update: List[Dict]):  # pragma: no cover
-        pass
 
 
 class LocalJsonRepository(BaseRepository):
