@@ -19,9 +19,9 @@ async def check_all_services(context: ContextTypes.DEFAULT_TYPE):
         for unhealthy_service in fetched_services['unhealthy']:
             text = (
                 f'{unhealthy_service.name} is down 🤕! '
-                f'\n `HTTP_STATUS_CODE={unhealthy_service.last_http_response_status_code}`'
+                f'\nHTTP status code = `{unhealthy_service.last_http_response_status_code}`'
             )
-            await context.bot.send_message(chat_id=chat_id, text=text)
+            await context.bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.MARKDOWN)
         healthy_service: Service
         for healthy_service in fetched_services['healthy']:
             try:
@@ -32,6 +32,6 @@ async def check_all_services(context: ContextTypes.DEFAULT_TYPE):
                 suffix = ''
             text = (
                 f'{healthy_service.name} is fixed now{suffix} 😅!'
-                f'\n `HTTP_STATUS_CODE={healthy_service.last_http_response_status_code}`'
+                f'\nHTTP status code = `{healthy_service.last_http_response_status_code}`'
             )
             await context.bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.MARKDOWN)
