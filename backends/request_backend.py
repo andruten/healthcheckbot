@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from enum import verify
 from typing import Tuple, Optional
 
 import httpx
@@ -18,7 +19,12 @@ class RequestBackend(BaseBackend):
         }
         try:
             logger.debug(f"Fetching {self.service.url}")
-            response = await session.request(method='GET', url=self.service.url, headers=headers)
+            response = await session.request(
+                method='GET',
+                url=self.service.url,
+                headers=headers,
+                verify=self.service.check_certificate,
+            )
         except (httpx.HTTPError, ssl.SSLCertVerificationError,) as exc:
             logger.warning(f'"{self.service.url}" request failed {exc}')
             return False, None, None, None
