@@ -33,6 +33,7 @@ class Service:
     time_to_first_byte: float = field(default=0.0)
     status: ServiceStatus = field(init=True, default=ServiceStatus.UNKNOWN)
     expire_date: Optional[datetime] = field(default=None)
+    check_certificate: bool = field(default=True)
 
     @property
     def healthcheck_backend(self) -> RequestBackend:
