@@ -12,7 +12,7 @@ from persistence import LocalJsonRepository
 logger = logging.getLogger(__name__)
 
 
-transport = httpx.AsyncHTTPTransport(retries=3)
+transport = httpx.AsyncHTTPTransport(retries=1)
 timeout = httpx.Timeout(5, read=None)
 
 
