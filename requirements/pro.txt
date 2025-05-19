@@ -1,2 +1,2 @@
 python-environ==0.4.54
-python-telegram-bot[job-queue]==21.10
+python-telegram-bot[job-queue]==22.1
