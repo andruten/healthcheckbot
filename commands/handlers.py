@@ -24,6 +24,7 @@ async def chat_service_checker_command_handler(chat_id: str) -> dict[str, dict[s
     healthy_services = []
     time_down = {}
     backend_checks = []
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None).replace(microsecond=0)
     async with httpx.AsyncClient(transport=transport, timeout=timeout) as session:
         for service in active_services:
             logger.info(f'name={service.name} status={service.status.value}')
@@ -34,12 +35,15 @@ async def chat_service_checker_command_handler(chat_id: str) -> dict[str, dict[s
         initial_service_status = service.status
         service.last_http_response_status_code = http_status
         if service_is_healthy is False:
-            service.status = ServiceStatus.UNHEALTHY
-            if initial_service_status != ServiceStatus.UNHEALTHY:
+            service.status = (
+                ServiceStatus.UNHEALTHY
+                if expire_date and expire_date > now_utc
+                else ServiceStatus.CERT_EXPIRED
+            )
+            if initial_service_status not in ServiceStatus.unhealthy_statuses:
                 unhealthy_services.append(service)
         else:
             service.status = ServiceStatus.HEALTHY
-            now_utc = datetime.now(timezone.utc).replace(tzinfo=None).replace(microsecond=0)
             if initial_service_status != ServiceStatus.HEALTHY:
                 healthy_services.append(service)
                 last_time_healthy_initial = service.last_time_healthy
@@ -48,7 +52,7 @@ async def chat_service_checker_command_handler(chat_id: str) -> dict[str, dict[s
                         now_utc - last_time_healthy_initial.replace(microsecond=0)
                     )
                 except (TypeError, AttributeError) as e:
-                    logger.info(f'Couldn\'t calculate time_down in {service}: {e}')
+                    logger.warning(f"Couldn't calculate time_down in {service}: {e}")
             service.last_time_healthy = now_utc
             service.time_to_first_byte = time_to_first_byte
             service.expire_date = expire_date
@@ -96,12 +100,15 @@ def list_services_command_handler(chat_id: str) -> str:
     result = ''
     for service in all_services:
         result += '\n\n'
-        result += f'`{service.name}` is {service.status.value.upper()}'
+        result += f'`{service.name}` is **{service.status.value.upper()}**'
         result += f'\nStatus: `{service.last_http_response_status_code}`'
         if service.status == ServiceStatus.HEALTHY and service.time_to_first_byte is not None:
             result += f'\nttfb: `{service.time_to_first_byte}`'
-        elif service.status == ServiceStatus.UNHEALTHY and service.last_time_healthy is not None:
+        elif service.status in ServiceStatus.unhealthy_statuses and service.last_time_healthy is not None:
             result += f'\nLast time healthy: `{service.last_time_healthy.strftime("%d/%m/%Y %H:%M:%S")}`'
         if service.expire_date is not None:
-            result += f'\nCert expires: `{service.expire_date.strftime("%d/%m/%Y %H:%M:%S")}`'
+            if service.status == ServiceStatus.CERT_EXPIRED:
+                result += f'\nCert expired: `{service.expire_date.strftime("%d/%m/%Y %H:%M:%S")}`'
+            else:
+                result += f'\nCert expires: `{service.expire_date.strftime("%d/%m/%Y %H:%M:%S")}`'
     return result

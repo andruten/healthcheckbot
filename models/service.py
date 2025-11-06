@@ -10,6 +10,12 @@ class ServiceStatus(enum.Enum):
     UNKNOWN = 'unknown'
     HEALTHY = 'healthy'
     UNHEALTHY = 'unhealthy'
+    CERT_EXPIRED = 'cert-expired'
+
+    @classmethod
+    @property
+    def unhealthy_statuses(cls):
+        return [cls.CERT_EXPIRED, cls.UNHEALTHY]
 
 
 def service_asdict_factory(data):
@@ -33,6 +39,18 @@ class Service:
     time_to_first_byte: float = field(default=0.0)
     status: ServiceStatus = field(init=True, default=ServiceStatus.UNKNOWN)
     expire_date: Optional[datetime] = field(default=None)
+
+    @property
+    def is_unhealthy(self):
+        return self.status in ServiceStatus.unhealthy_statuses
+
+    @property
+    def is_down(self):
+        return self.status == ServiceStatus.UNHEALTHY
+
+    @property
+    def is_cert_expired(self):
+        return self.status == ServiceStatus.CERT_EXPIRED
 
     @property
     def healthcheck_backend(self) -> RequestBackend:
