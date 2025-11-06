@@ -83,7 +83,7 @@ class TestCommandHandlers(unittest.TestCase):
                 Service(
                     name='test',
                     url='test.com',
-                    status=ServiceStatus.HEALTHY,
+                    status=ServiceStatus.UNHEALTHY,
                 ),
             ]
 
@@ -91,6 +91,32 @@ class TestCommandHandlers(unittest.TestCase):
 
         self.assertIsInstance(chat_services, dict)
         self.assertTrue(len(chat_services), 1)
+        self.assertEqual(chat_services[0].status, ServiceStatus.UNHEALTHY)
+
+    @patch('commands.handlers.LocalJsonRepository.create')
+    @patch('commands.handlers.ServiceRepository.fetch_active')
+    async def test_chat_service_checker_command_handler_cert_expired(
+            self,
+            mock_service_manager,
+            mock_repository_create,
+    ):
+        mock_repository_create.return_value = MagicMock()
+        with patch.object(Service, 'healthcheck_backend', new_callable=PropertyMock) as mock_healthcheck_backend:
+            mock_ht_service = MagicMock(return_value=(False, None))
+            mock_healthcheck_backend.return_value = MagicMock(check=mock_ht_service)
+            mock_service_manager.return_value = [
+                Service(
+                    name='test',
+                    url='test.com',
+                    status=ServiceStatus.CERT_EXPIRED,
+                ),
+            ]
+
+            chat_services = await chat_service_checker_command_handler('1234')
+
+        self.assertIsInstance(chat_services, dict)
+        self.assertTrue(len(chat_services), 1)
+        self.assertEqual(chat_services[0].status, ServiceStatus.CERT_EXPIRED)
 
     @patch('commands.handlers.LocalJsonRepository.get_all_chat_ids')
     @patch('commands.handlers.chat_service_checker_command_handler')
