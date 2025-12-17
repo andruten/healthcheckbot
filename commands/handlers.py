@@ -27,19 +27,21 @@ async def chat_service_checker_command_handler(chat_id: str) -> dict[str, dict[s
     now_utc = datetime.now(timezone.utc).replace(tzinfo=None).replace(microsecond=0)
     async with httpx.AsyncClient(transport=transport, timeout=timeout) as session:
         for service in active_services:
-            logger.info(f'name={service.name} status={service.status.value}')
+            logger.debug(f'name={service.name} status={service.status.value}')
             backend_checks.append(service.healthcheck_backend.check(session))
         responses = await asyncio.gather(*backend_checks)
     services = []
-    for service, (service_is_healthy, time_to_first_byte, expire_date, http_status) in zip(active_services, responses):
+    for service, response in zip(active_services, responses):
         initial_service_status = service.status
-        service.last_http_response_status_code = http_status
-        if service_is_healthy is False:
-            service.status = (
-                ServiceStatus.UNHEALTHY
-                if expire_date and expire_date > now_utc
-                else ServiceStatus.CERT_EXPIRED
-            )
+        service.last_http_response_status_code = response.http_status
+        if response.service_is_healthy is False:
+            if response.expire_date:
+                service.status = (
+                    ServiceStatus.UNHEALTHY if response.expire_date > now_utc else ServiceStatus.CERT_EXPIRED
+                )
+            else:
+                service.status = ServiceStatus.UNHEALTHY
+
             if initial_service_status not in ServiceStatus.unhealthy_statuses:
                 unhealthy_services.append(service)
         else:
@@ -54,9 +56,9 @@ async def chat_service_checker_command_handler(chat_id: str) -> dict[str, dict[s
                 except (TypeError, AttributeError) as e:
                     logger.warning(f"Couldn't calculate time_down in {service}: {e}")
             service.last_time_healthy = now_utc
-            service.time_to_first_byte = time_to_first_byte
-            service.expire_date = expire_date
-            service.last_http_response_status_code = http_status
+            service.time_to_first_byte = response.time_to_first_byte
+            service.expire_date = response.expire_date
+            service.last_http_response_status_code = response.http_status
         services.append(service.to_dict())
     service_manager.update(services)
 

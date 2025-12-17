@@ -16,7 +16,7 @@ async def check_all_services(context: ContextTypes.DEFAULT_TYPE):
         fetched_services: dict[str, list[Service]] = chat_fetched_services[chat_id]
         unhealthy_service: Service
         for unhealthy_service in fetched_services['unhealthy']:
-            status_text = '**certificate is expired**! ' if unhealthy_service.is_cert_expired else '**is down**!'
+            status_text = '**certificate is expired**' if unhealthy_service.is_cert_expired else '**is down**'
             text = (
                 f'🤕 `{unhealthy_service.name}` {status_text}!'
                 f'\nIt returned `{unhealthy_service.last_http_response_status_code or "nothing"}`'
