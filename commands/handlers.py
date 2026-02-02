@@ -33,7 +33,7 @@ async def chat_service_checker_command_handler(chat_id: str) -> dict[str, dict[s
     services = []
     for service, response in zip(active_services, responses):
         initial_service_status = service.status
-        service.last_http_response_status_code = response.http_status
+        service.last_http_response_status_code = response.status_code
         if response.service_is_healthy is False:
             if response.expire_date:
                 service.status = (
@@ -56,9 +56,9 @@ async def chat_service_checker_command_handler(chat_id: str) -> dict[str, dict[s
                 except (TypeError, AttributeError) as e:
                     logger.warning(f"Couldn't calculate time_down in {service}: {e}")
             service.last_time_healthy = now_utc
-            service.time_to_first_byte = response.time_to_first_byte
+            service.time_to_first_byte = response.elapsed_total_seconds
             service.expire_date = response.expire_date
-            service.last_http_response_status_code = response.http_status
+            service.last_http_response_status_code = response.status_code
         services.append(service.to_dict())
     service_manager.update(services)
 
@@ -79,6 +79,7 @@ async def chat_services_checker_command_handler() -> dict[str, dict]:
 
     for chat_id in chat_ids:
         fetched_services = await chat_service_checker_command_handler(chat_id)
+        logger.info(f'Fetched services for chat {chat_id}: {fetched_services}')
         all_chats_fetched_services.update(**fetched_services)
 
     return all_chats_fetched_services
@@ -92,6 +93,7 @@ def add_service_command_handler(chat_id, name, url) -> Service:
 def remove_services_command_handler(name, chat_id: str) -> None:
     persistence = LocalJsonRepository.create(chat_id)
     ServiceRepository(persistence).remove(name)
+    logger.info(f'Removed service {name} from chat {chat_id}')
 
 
 def list_services_command_handler(chat_id: str) -> str:
