@@ -1,0 +1,42 @@
+services:
+  db:
+    image: mysql:8
+    container_name: healthchecker-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: healthchecker
+      MYSQL_USER: healthchecker
+      MYSQL_PASSWORD: healthchecker
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  healthcheckbot:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      ALLOWED_CHAT_IDS: ${ALLOWED_CHAT_IDS}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: healthchecker
+      DB_PASSWORD: healthchecker
+      DB_NAME: healthchecker
+      CHECK_INTERVAL_SEC: "60"
+      DEFAULT_ALERT_DAYS: "7"
+      RETENTION_DAYS: "7"
+      LOG_LEVEL: "INFO"
+    volumes:
+      - ./src:/app
+      - ./pyproject.toml:/app/pyproject.toml
+volumes:
+  mysql_data:

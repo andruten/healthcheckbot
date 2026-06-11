@@ -20,7 +20,7 @@ jobs:
           known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
 
       - name: Deploy with rsync
-        run: rsync -avz --delete --exclude '.git/' --exclude 'data/' -e "ssh -i ~/.ssh/github-actions" . ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }} --exclude=/.env
+        run: rsync -avz --delete --exclude '.git/' --exclude 'docker-compose.yml' -e "ssh -i ~/.ssh/github-actions" . ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }} --exclude=/.env
 
       - name: executing remote ssh commands using ssh key
         uses: appleboy/ssh-action@master
@@ -33,4 +33,5 @@ jobs:
             cd ${{ secrets.DEPLOY_PATH }}
             docker compose build
             docker compose down
+            docker compose run --rm healthcheckbot aerich upgrade
             docker compose up -d
