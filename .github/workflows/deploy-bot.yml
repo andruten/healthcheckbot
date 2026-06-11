@@ -33,4 +33,5 @@ jobs:
             cd ${{ secrets.DEPLOY_PATH }}
             docker compose build
             docker compose down
+            docker compose run --rm healthcheckbot aerich upgrade
             docker compose up -d

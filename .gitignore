@@ -1,7 +1,6 @@
-venv/
-.idea/
-.vscode/
+.venv/
 __pycache__/
+*.pyc
 .env
-*.json
-.coverage
+mysql_data/
+.idea/

@@ -1,20 +1,28 @@
-FROM python:3.11-slim-bookworm
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+FROM python:3.14-slim AS builder
 
-RUN mkdir /opt/app && \
-    mkdir /opt/requirements
+ENV VIRTUAL_ENV=/opt/venv
 
-# Requirements
-RUN pip install --upgrade pip
+RUN python -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-WORKDIR /opt/app
+WORKDIR /app
 
-COPY ./requirements/ /opt/requirements/
-ARG requirements
-RUN pip install -r /opt/requirements/${requirements:-"pro"}.txt
+COPY pyproject.toml .
+RUN pip install --no-cache-dir .
 
-# Copy code
-COPY . .
 
-CMD ["python", "-m", "main"]
+FROM python:3.14-slim
+
+WORKDIR /app
+
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+COPY --from=builder $VIRTUAL_ENV $VIRTUAL_ENV
+
+COPY ./src/ /app
+COPY docker-entrypoint.sh /usr/local/bin/
+
+ENV PYTHONPATH=/app
+
+CMD ["python", "-m", "healthchecker.main"]
