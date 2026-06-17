@@ -32,11 +32,15 @@ class CheckAllUrlsUseCase:
 
     async def execute(self) -> list[Alert]:
         urls = await self._url_repo.get_all_active()
-        logger.info("Running health checks for %d URLs", len(urls))
+        logger.debug("Running health checks for %d URLs", len(urls))
         alerts: list[Alert] = []
 
         for url in urls:
             try:
+                previous_check = await self._health_check_repo.get_latest_by_url_id(
+                    url.id
+                )
+
                 http_status, ttfb_ms, error = await self._http_checker.check(url.url)
 
                 ssl_info = None
@@ -66,25 +70,33 @@ class CheckAllUrlsUseCase:
                 if ssl_days is not None and HealthCheckService.should_alert_ssl(
                     ssl_days, url.alert_before_days
                 ):
-                    alert = HealthCheckService.build_ssl_alert(
-                        url.id,
-                        url.name,
-                        ssl_days,
-                        url.alert_before_days,
-                        ssl_expiry,
+                    previous_ssl_ok = (
+                        previous_check is None
+                        or previous_check.ssl_days_remaining is None
+                        or previous_check.ssl_days_remaining > url.alert_before_days
                     )
-                    await self._alert_repo.save(alert)
-                    alerts.append(alert)
+                    if previous_ssl_ok:
+                        alert = HealthCheckService.build_ssl_alert(
+                            url.id,
+                            url.name,
+                            ssl_days,
+                            url.alert_before_days,
+                            ssl_expiry,
+                        )
+                        await self._alert_repo.save(alert)
+                        alerts.append(alert)
 
                 if not is_healthy:
-                    alert = HealthCheckService.build_http_down_alert(
-                        url.id,
-                        url.name,
-                        http_status,
-                        error,
-                    )
-                    await self._alert_repo.save(alert)
-                    alerts.append(alert)
+                    was_healthy = previous_check is None or previous_check.is_healthy
+                    if was_healthy:
+                        alert = HealthCheckService.build_http_down_alert(
+                            url.id,
+                            url.name,
+                            http_status,
+                            error,
+                        )
+                        await self._alert_repo.save(alert)
+                        alerts.append(alert)
 
             except Exception as e:
                 logger.error("Error checking URL %s: %s", url.url, e, exc_info=True)

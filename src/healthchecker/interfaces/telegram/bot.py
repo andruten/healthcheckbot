@@ -18,6 +18,7 @@ from healthchecker.interfaces.telegram.handlers.results import ResultsHandler
 from healthchecker.application.use_cases.manage_urls import ManageUrlsUseCase
 from healthchecker.application.use_cases.get_results import GetResultsUseCase
 from healthchecker.application.use_cases.check_all_urls import CheckAllUrlsUseCase
+from healthchecker.domain.repositories.alert_repository import AlertRepository
 from healthchecker.domain.repositories.daily_summary_repository import (
     DailySummaryRepository,
 )
@@ -32,11 +33,13 @@ class TelegramBot:
         get_results: GetResultsUseCase,
         check_all_urls: CheckAllUrlsUseCase,
         summary_repo: DailySummaryRepository | None = None,
+        alert_repo: AlertRepository | None = None,
     ):
         self._manage_urls = manage_urls
         self._get_results = get_results
         self._check_all_urls = check_all_urls
         self._summary_repo = summary_repo
+        self._alert_repo = alert_repo
         self._app: Application | None = None
 
     async def start(self):
@@ -65,7 +68,12 @@ class TelegramBot:
             CommandHandler("delete", DeleteUrlHandler(self._manage_urls).handle)
         )
         self._app.add_handler(
-            CommandHandler("check", CheckNowHandler(self._check_all_urls).handle)
+            CommandHandler(
+                "check",
+                CheckNowHandler(
+                    self._check_all_urls, self._alert_repo, self.send_alert
+                ).handle,
+            )
         )
         self._app.add_handler(
             CommandHandler(
@@ -100,7 +108,7 @@ class TelegramBot:
         for chat_id in chat_ids:
             try:
                 await bot.send_message(
-                    chat_id=chat_id, text=message, parse_mode="Markdown"
+                    chat_id=str(chat_id), text=message, parse_mode="Markdown"
                 )
             except Exception as e:
                 logger.error(
