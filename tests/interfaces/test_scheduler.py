@@ -32,8 +32,16 @@ class TestScheduler:
         mocker.patch(
             "healthchecker.interfaces.scheduler.settings.check_interval_sec", 0.01
         )
-        mock_use_case.execute.return_value = ["alert1"]
-        scheduler = Scheduler(mock_use_case)
+        alert = mocker.Mock()
+        alert.message = "Test alert"
+        alert.id = 1
+        mock_use_case.execute.return_value = [alert]
+
+        alert_repo = mocker.AsyncMock()
+        send_alert = mocker.AsyncMock()
+        scheduler = Scheduler(
+            mock_use_case, alert_repo=alert_repo, send_alert=send_alert
+        )
 
         async def run():
             task = asyncio.create_task(scheduler.start())
@@ -43,3 +51,5 @@ class TestScheduler:
 
         await run()
         assert mock_use_case.execute.await_count >= 1
+        send_alert.assert_awaited_with("Test alert")
+        alert_repo.mark_as_sent.assert_awaited_with(1)
