@@ -68,8 +68,10 @@ async def main():
         settings.retention_days,
     )
 
-    bot = TelegramBot(manage_urls, get_results, check_all_urls, summary_repo)
-    scheduler = Scheduler(check_all_urls, consolidate)
+    bot = TelegramBot(
+        manage_urls, get_results, check_all_urls, summary_repo, alert_repo
+    )
+    scheduler = Scheduler(check_all_urls, consolidate, alert_repo, bot.send_alert)
 
     try:
         await asyncio.gather(
