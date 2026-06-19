@@ -210,3 +210,49 @@ class TestCheckAllUrlsUseCase:
         alerts = await use_case.execute()
         assert len(alerts) == 1
         assert alerts[0].alert_type == AlertType.SSL_EXPIRY
+
+    async def test_alert_when_transition_to_healthy(
+        self, use_case, mocks, ssl_valid
+    ):
+        _, health_repo, alert_repo, http_checker, ssl_checker = mocks
+        previous = HealthCheck(
+            id=95,
+            url_id=1,
+            http_status=503,
+            ttfb_ms=None,
+            ssl_days_remaining=200,
+            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=timezone.utc),
+            is_healthy=False,
+            error_message="Previous error",
+            checked_at=datetime.now(timezone.utc),
+        )
+        health_repo.get_latest_by_url_id.side_effect = [previous, None]
+        http_checker.check.side_effect = [HTTP_OK, HTTP_OK]
+        ssl_checker.check.return_value = ssl_valid
+
+        alerts = await use_case.execute()
+        assert len(alerts) == 1
+        assert alerts[0].alert_type == AlertType.HTTP_UP
+        assert "UP again" in alerts[0].message
+
+    async def test_no_alert_when_already_healthy(
+        self, use_case, mocks, ssl_valid
+    ):
+        _, health_repo, alert_repo, http_checker, ssl_checker = mocks
+        health_repo.get_latest_by_url_id.return_value = HealthCheck(
+            id=94,
+            url_id=1,
+            http_status=200,
+            ttfb_ms=100.0,
+            ssl_days_remaining=200,
+            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=timezone.utc),
+            is_healthy=True,
+            error_message=None,
+            checked_at=datetime.now(timezone.utc),
+        )
+        http_checker.check.side_effect = [HTTP_OK, HTTP_OK]
+        ssl_checker.check.return_value = ssl_valid
+
+        alerts = await use_case.execute()
+        assert alerts == []
+        alert_repo.save.assert_not_called()

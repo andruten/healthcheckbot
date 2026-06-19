@@ -6,6 +6,7 @@ from enum import Enum
 class AlertType(str, Enum):
     SSL_EXPIRY = "ssl_expiry"
     HTTP_DOWN = "http_down"
+    HTTP_UP = "http_up"
 
 
 @dataclass
