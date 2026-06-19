@@ -49,3 +49,23 @@ class HealthCheckService:
             is_sent=False,
             created_at=datetime.now(timezone.utc),
         )
+
+    @staticmethod
+    def build_http_up_alert(
+        url_id: int,
+        url_name: str,
+        status: int | None,
+        ttfb_ms: float | None,
+    ) -> Alert:
+        ttfb_part = f" | {ttfb_ms:.0f}ms" if ttfb_ms is not None else ""
+        return Alert(
+            id=None,
+            url_id=url_id,
+            alert_type=AlertType.HTTP_UP,
+            message=(
+                f"✅ *{url_name}* is UP again."
+                + (f" HTTP {status}{ttfb_part}" if status else "")
+            ),
+            is_sent=False,
+            created_at=datetime.now(timezone.utc),
+        )

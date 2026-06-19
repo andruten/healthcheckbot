@@ -97,6 +97,19 @@ class CheckAllUrlsUseCase:
                         )
                         await self._alert_repo.save(alert)
                         alerts.append(alert)
+                else:
+                    was_unhealthy = (
+                        previous_check is not None and not previous_check.is_healthy
+                    )
+                    if was_unhealthy:
+                        alert = HealthCheckService.build_http_up_alert(
+                            url.id,
+                            url.name,
+                            http_status,
+                            ttfb_ms,
+                        )
+                        await self._alert_repo.save(alert)
+                        alerts.append(alert)
 
             except Exception as e:
                 logger.error("Error checking URL %s: %s", url.url, e, exc_info=True)
