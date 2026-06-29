@@ -13,7 +13,7 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "cryptography>=44",
     "tortoise-orm>=0.24",
-    "aerich>=0.8",
+    "aerich>=0.9.2",
     "aiomysql>=0.2",
 ]
 
