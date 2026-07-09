@@ -23,14 +23,16 @@ class ListUrlsHandler:
         for url in urls:
             latest = await self._get_results.get_latest(url.id)
             status_line = (
-                self._format_status(latest) if latest else "⏳ Not checked yet"
+                self._format_status(latest, url.alert_before_days)
+                if latest
+                else "⏳ Not checked yet"
             )
             lines.append(f"{url.id}. *{url.name}*\n   `{url.url}`\n   {status_line}\n")
 
         await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
     @staticmethod
-    def _format_status(check):
+    def _format_status(check, alert_before_days: int = 30):
         if check.error_message:
             return f"❌ Error: {check.error_message}"
 
@@ -47,6 +49,15 @@ class ListUrlsHandler:
             ssl_expiry = f"Expires: {check.ssl_expiration_date.strftime('%Y-%m-%d')}"
 
         parts = [p for p in [http_part, ttfb_part, ssl_part, ssl_expiry] if p]
-        status_icon = "✅" if check.is_healthy else "❌"
+
+        if not check.is_healthy:
+            status_icon = "❌"
+        elif (
+            check.ssl_days_remaining is not None
+            and check.ssl_days_remaining <= alert_before_days
+        ):
+            status_icon = "⚠️"
+        else:
+            status_icon = "✅"
 
         return f"{status_icon} {' | '.join(parts)}"
