@@ -211,9 +211,7 @@ class TestCheckAllUrlsUseCase:
         assert len(alerts) == 1
         assert alerts[0].alert_type == AlertType.SSL_EXPIRY
 
-    async def test_alert_when_transition_to_healthy(
-        self, use_case, mocks, ssl_valid
-    ):
+    async def test_alert_when_transition_to_healthy(self, use_case, mocks, ssl_valid):
         _, health_repo, alert_repo, http_checker, ssl_checker = mocks
         previous = HealthCheck(
             id=95,
@@ -235,9 +233,7 @@ class TestCheckAllUrlsUseCase:
         assert alerts[0].alert_type == AlertType.HTTP_UP
         assert "UP again" in alerts[0].message
 
-    async def test_no_alert_when_already_healthy(
-        self, use_case, mocks, ssl_valid
-    ):
+    async def test_no_alert_when_already_healthy(self, use_case, mocks, ssl_valid):
         _, health_repo, alert_repo, http_checker, ssl_checker = mocks
         health_repo.get_latest_by_url_id.return_value = HealthCheck(
             id=94,
