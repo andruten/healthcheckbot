@@ -16,6 +16,10 @@ FROM python:3.14-slim
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
+RUN groupadd --gid 1000 healthcheckbot \
+    && useradd --uid 1000 --gid healthcheckbot --no-create-home \
+        --shell /usr/sbin/nologin healthcheckbot
+
 WORKDIR /app
 
 ENV VIRTUAL_ENV=/opt/venv
@@ -27,5 +31,7 @@ COPY ./src/ /app
 COPY pyproject.toml /app/pyproject.toml
 
 ENV PYTHONPATH=/app
+
+USER healthcheckbot
 
 CMD ["python", "-m", "healthchecker.main"]
