@@ -1,7 +1,8 @@
 from datetime import date, datetime, timezone
 
 import pytest
-from tortoise import Tortoise
+import pytest_asyncio
+from tortoise.contrib.test import tortoise_test_context
 
 from healthchecker.domain.models.url import Url
 from healthchecker.domain.models.health_check import HealthCheck
@@ -20,20 +21,12 @@ from healthchecker.infrastructure.persistence.daily_summary_repository import (
     TortoiseDailySummaryRepository,
 )
 
-
-@pytest.fixture(scope="module", autouse=True)
+@pytest_asyncio.fixture(autouse=True)
 async def init_tortoise():
-    await Tortoise.init(
-        db_url="sqlite://:memory:",
-        modules={
-            "models": [
-                "healthchecker.infrastructure.persistence.tortoise_models",
-            ]
-        },
-    )
-    await Tortoise.generate_schemas()
-    yield
-    await Tortoise.close_connections()
+    async with tortoise_test_context(
+        ["healthchecker.infrastructure.persistence.tortoise_models"]
+    ):
+        yield
 
 
 @pytest.fixture
@@ -63,7 +56,6 @@ async def sample_url(url_repo):
     )
 
 
-@pytest.mark.asyncio
 class TestTortoiseUrlRepository:
     async def test_add_and_get_by_id(self, url_repo):
         url = await url_repo.add(Url.create("https://test.com", name="Test"))
@@ -85,7 +77,6 @@ class TestTortoiseUrlRepository:
         assert await url_repo.get_by_id(url.id) is None
 
 
-@pytest.mark.asyncio
 class TestTortoiseHealthCheckRepository:
     async def test_save_and_get_latest(self, hc_repo, sample_url):
         now = datetime.now(timezone.utc)
@@ -166,7 +157,6 @@ class TestTortoiseHealthCheckRepository:
         assert len(filtered) >= 1
 
 
-@pytest.mark.asyncio
 class TestTortoiseAlertRepository:
     async def test_save_and_get_unsent(self, alert_repo, sample_url):
         now = datetime.now(timezone.utc)
@@ -200,7 +190,6 @@ class TestTortoiseAlertRepository:
         assert all(a.id != saved.id for a in unsent)
 
 
-@pytest.mark.asyncio
 class TestTortoiseDailySummaryRepository:
     async def test_save_and_get(self, summary_repo, sample_url):
         s = DailySummary(
