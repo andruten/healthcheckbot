@@ -6,6 +6,7 @@ from healthchecker.application.use_cases.manage_urls import ManageUrlsUseCase
 from healthchecker.domain.repositories.daily_summary_repository import (
     DailySummaryRepository,
 )
+from healthchecker.interfaces.telegram.markdown import markdown_escape
 
 
 class ResultsHandler:
@@ -43,11 +44,14 @@ class ResultsHandler:
         lines = []
 
         if checks:
-            lines.append(f"📊 *Results for {url.name}* (last {len(checks)} checks)\n")
+            lines.append(
+                f"📊 *Results for {markdown_escape(url.name)}* "
+                f"(last {len(checks)} checks)\n"
+            )
             for c in checks:
                 lines.append(self._format_raw_check(c))
         else:
-            lines.append(f"📊 *Results for {url.name}*\n")
+            lines.append(f"📊 *Results for {markdown_escape(url.name)}*\n")
 
         remaining = limit - len(checks)
         if remaining > 0 and self._summary_repo:
@@ -60,7 +64,8 @@ class ResultsHandler:
 
         if len(lines) <= 1:
             await update.message.reply_text(
-                f"No health checks yet for *{url.name}*.", parse_mode="Markdown"
+                f"No health checks yet for *{markdown_escape(url.name)}*.",
+                parse_mode="Markdown",
             )
             return
 
@@ -77,7 +82,7 @@ class ResultsHandler:
         if c.ssl_expiration_date:
             parts.append(f"Expires: {c.ssl_expiration_date.strftime('%Y-%m-%d')}")
         if c.error_message:
-            parts.append(f"Error: {c.error_message}")
+            parts.append(f"Error: {markdown_escape(c.error_message)}")
         timestamp = c.checked_at.strftime("%Y-%m-%d %H:%M:%S") if c.checked_at else "?"
         return f"`{timestamp}` — {' | '.join(parts)}"
 

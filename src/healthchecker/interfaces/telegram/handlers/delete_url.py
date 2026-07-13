@@ -2,6 +2,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from healthchecker.application.use_cases.manage_urls import ManageUrlsUseCase
+from healthchecker.interfaces.telegram.markdown import markdown_escape
 
 
 class DeleteUrlHandler:
@@ -21,5 +22,6 @@ class DeleteUrlHandler:
 
         await self._manage_urls.delete(url_id)
         await update.message.reply_text(
-            f"🗑️ Deleted *{url.name}* (ID: {url_id})", parse_mode="Markdown"
+            f"🗑️ Deleted *{markdown_escape(url.name)}* (ID: {url_id})",
+            parse_mode="Markdown",
         )

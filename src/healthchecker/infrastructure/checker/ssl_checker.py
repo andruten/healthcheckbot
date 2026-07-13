@@ -41,6 +41,12 @@ class SslChecker:
 
             return SslInfo(expiration_date=exp_date, days_remaining=days_remaining)
 
+        except ssl.SSLCertVerificationError as e:
+            logger.warning("SSL certificate verification failed for %s: %s", url, e)
+            return None
+        except ssl.SSLError as e:
+            logger.warning("SSL check failed for %s: %s", url, e)
+            return None
         except Exception as e:
             logger.error("SSL check error for %s: %s", url, e, exc_info=True)
             return None

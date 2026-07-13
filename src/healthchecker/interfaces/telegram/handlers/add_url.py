@@ -4,6 +4,7 @@ from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes
 
 from healthchecker.application.use_cases.manage_urls import ManageUrlsUseCase
+from healthchecker.interfaces.telegram.markdown import markdown_escape
 
 
 class AddUrlHandler:
@@ -50,8 +51,8 @@ class AddUrlHandler:
                 url=url, name=name, alert_before_days=alert_days
             )
             await update.message.reply_text(
-                f"✅ Added URL *{created.name}* (ID: {created.id})\n"
-                f"URL: `{created.url}`\n"
+                f"✅ Added URL *{markdown_escape(created.name)}* (ID: {created.id})\n"
+                f"URL: `{markdown_escape(created.url)}`\n"
                 f"SSL alert threshold: {alert_days} days",
                 parse_mode="Markdown",
             )
