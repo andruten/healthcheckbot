@@ -172,6 +172,44 @@ class TestListUrlsHandler:
         assert "https://example.com" in text
         assert "✅" in text
 
+    async def test_handler_escapes_markdown_dynamic_content(self, mocker):
+        url = mocker.Mock()
+        url.id = 1
+        url.name = "Self_signed *box*"
+        url.url = "https://example.com/self_signed"
+        url.alert_before_days = 30
+
+        check = HealthCheck(
+            id=10,
+            url_id=1,
+            http_status=None,
+            ttfb_ms=None,
+            ssl_days_remaining=None,
+            ssl_expiration_date=None,
+            is_healthy=False,
+            error_message=(
+                "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: "
+                "self-signed certificate (_ssl.c:1082)"
+            ),
+            checked_at=datetime.now(timezone.utc),
+        )
+
+        manage_urls = mocker.AsyncMock()
+        manage_urls.list_all.return_value = [url]
+        get_results = mocker.AsyncMock()
+        get_results.get_latest.return_value = check
+        handler = ListUrlsHandler(manage_urls, get_results)
+
+        update = mocker.AsyncMock()
+        context = mocker.AsyncMock()
+        await handler.handle(update, context)
+
+        text = update.message.reply_text.call_args[0][0]
+        assert "Self\\_signed \\*box\\*" in text
+        assert "self\\_signed" in text
+        assert "\\_ssl.c" in text
+        assert update.message.reply_text.call_args.kwargs["parse_mode"] == "Markdown"
+
     async def test_handler_with_url_not_checked_yet(self, mocker):
         url = mocker.Mock()
         url.id = 1

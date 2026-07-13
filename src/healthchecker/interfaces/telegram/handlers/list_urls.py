@@ -3,6 +3,7 @@ from telegram.ext import ContextTypes
 
 from healthchecker.application.use_cases.manage_urls import ManageUrlsUseCase
 from healthchecker.application.use_cases.get_results import GetResultsUseCase
+from healthchecker.interfaces.telegram.markdown import markdown_escape
 
 
 class ListUrlsHandler:
@@ -27,14 +28,18 @@ class ListUrlsHandler:
                 if latest
                 else "⏳ Not checked yet"
             )
-            lines.append(f"{url.id}. *{url.name}*\n   `{url.url}`\n   {status_line}\n")
+            lines.append(
+                f"{url.id}. *{markdown_escape(url.name)}*\n"
+                f"   `{markdown_escape(url.url)}`\n"
+                f"   {status_line}\n"
+            )
 
         await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
     @staticmethod
     def _format_status(check, alert_before_days: int = 30):
         if check.error_message:
-            return f"❌ Error: {check.error_message}"
+            return f"❌ Error: {markdown_escape(check.error_message)}"
 
         http_part = f"HTTP {check.http_status}"
         ttfb_part = f"{check.ttfb_ms:.0f}ms" if check.ttfb_ms else ""
