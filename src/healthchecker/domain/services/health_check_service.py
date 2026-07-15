@@ -1,6 +1,12 @@
 from datetime import datetime, timezone
 
+from telegram.helpers import escape_markdown
+
 from healthchecker.domain.models.alert import Alert, AlertType
+
+
+def _markdown_escape(value: object) -> str:
+    return escape_markdown(str(value), version=1)
 
 
 class HealthCheckService:
@@ -26,7 +32,8 @@ class HealthCheckService:
             url_id=url_id,
             alert_type=AlertType.SSL_EXPIRY,
             message=(
-                f"⚠️ SSL certificate for *{url_name}* expires in *{days_remaining} days*"
+                f"⚠️ SSL certificate for *{_markdown_escape(url_name)}* "
+                f"expires in *{days_remaining} days*"
                 f"{date_part} "
                 f"(threshold: {threshold_days} days)."
             ),
@@ -38,14 +45,14 @@ class HealthCheckService:
     def build_http_down_alert(
         url_id: int, url_name: str, status: int | None, error: str | None
     ) -> Alert:
+        status_or_error = (
+            f"HTTP {status}" if status else f"Error: {_markdown_escape(error)}"
+        )
         return Alert(
             id=None,
             url_id=url_id,
             alert_type=AlertType.HTTP_DOWN,
-            message=(
-                f"❌ *{url_name}* is DOWN. "
-                + (f"HTTP {status}" if status else f"Error: {error}")
-            ),
+            message=(f"❌ *{_markdown_escape(url_name)}* is DOWN. " + status_or_error),
             is_sent=False,
             created_at=datetime.now(timezone.utc),
         )
@@ -63,7 +70,7 @@ class HealthCheckService:
             url_id=url_id,
             alert_type=AlertType.HTTP_UP,
             message=(
-                f"✅ *{url_name}* is UP again."
+                f"✅ *{_markdown_escape(url_name)}* is UP again."
                 + (f" HTTP {status}{ttfb_part}" if status else "")
             ),
             is_sent=False,

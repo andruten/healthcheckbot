@@ -34,10 +34,12 @@ class CheckNowHandler:
 
     async def _dispatch_alerts(self, alerts: list[Alert]):
         for alert in alerts:
+            sent = True
             if self._send_alert:
                 try:
                     await self._send_alert(alert.message)
                 except Exception as e:
+                    sent = False
                     logger.error("Failed to send alert: %s", e, exc_info=True)
-            if self._alert_repo and alert.id is not None:
+            if sent and self._alert_repo and alert.id is not None:
                 await self._alert_repo.mark_as_sent(alert.id)

@@ -55,3 +55,14 @@ class TestHealthCheckService:
         )
         assert alert.alert_type == AlertType.HTTP_DOWN
         assert "Connection refused" in alert.message
+
+    def test_build_http_down_alert_escapes_markdown_error(self):
+        alert = HealthCheckService.build_http_down_alert(
+            1,
+            "I Ching Natal",
+            None,
+            "[SSL: TLSV1_UNRECOGNIZED_NAME] tlsv1 unrecognized name (_ssl.c:1082)",
+        )
+
+        assert "\\_ssl.c" in alert.message
+        assert "TLSV1\\_UNRECOGNIZED\\_NAME" in alert.message

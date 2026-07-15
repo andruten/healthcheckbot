@@ -105,15 +105,19 @@ class TelegramBot:
             if settings.allowed_chat_ids
             else await self._get_authorized_chat_ids()
         )
+        failed_sends = 0
         for chat_id in chat_ids:
             try:
                 await bot.send_message(
                     chat_id=str(chat_id), text=message, parse_mode="Markdown"
                 )
             except Exception as e:
+                failed_sends += 1
                 logger.error(
                     "Failed to send alert to chat %s: %s", chat_id, e, exc_info=True
                 )
+        if failed_sends:
+            raise RuntimeError(f"Failed to send alert to {failed_sends} chat(s)")
 
     async def _get_authorized_chat_ids(self) -> set[int]:
         chat_ids: set[int] = set()
