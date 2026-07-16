@@ -47,6 +47,9 @@ class SslChecker:
         except ssl.SSLError as e:
             logger.warning("SSL check failed for %s: %s", url, e)
             return None
+        except OSError as e:
+            logger.warning("Network error checking SSL for %s: %s", url, e)
+            return None
         except Exception as e:
             logger.error("SSL check error for %s: %s", url, e, exc_info=True)
             return None
