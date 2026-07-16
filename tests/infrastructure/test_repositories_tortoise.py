@@ -21,6 +21,7 @@ from healthchecker.infrastructure.persistence.daily_summary_repository import (
     TortoiseDailySummaryRepository,
 )
 
+
 @pytest_asyncio.fixture(autouse=True)
 async def init_tortoise():
     async with tortoise_test_context(

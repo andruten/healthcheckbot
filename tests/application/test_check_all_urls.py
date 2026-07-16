@@ -78,8 +78,8 @@ class TestCheckAllUrlsUseCase:
 
     async def test_unhealthy_url(self, use_case, mocks, ssl_valid):
         _, _, alert_repo, http_checker, ssl_checker = mocks
-        http_checker.check.side_effect = (
-            lambda url: HTTP_503 if "example.com" in url else HTTP_OK
+        http_checker.check.side_effect = lambda url: (
+            HTTP_503 if "example.com" in url else HTTP_OK
         )
         ssl_checker.check.return_value = ssl_valid
 
@@ -90,8 +90,8 @@ class TestCheckAllUrlsUseCase:
 
     async def test_url_with_timeout(self, use_case, mocks, ssl_valid):
         _, _, alert_repo, http_checker, ssl_checker = mocks
-        http_checker.check.side_effect = (
-            lambda url: TIMEOUT if "example.com" in url else HTTP_OK
+        http_checker.check.side_effect = lambda url: (
+            TIMEOUT if "example.com" in url else HTTP_OK
         )
         ssl_checker.check.return_value = ssl_valid
 
@@ -163,11 +163,11 @@ class TestCheckAllUrlsUseCase:
             error_message=None,
             checked_at=datetime.now(timezone.utc),
         )
-        health_repo.get_latest_by_url_id.side_effect = (
-            lambda url_id: previous if url_id == 1 else None
+        health_repo.get_latest_by_url_id.side_effect = lambda url_id: (
+            previous if url_id == 1 else None
         )
-        http_checker.check.side_effect = (
-            lambda url: HTTP_503 if "example.com" in url else HTTP_OK
+        http_checker.check.side_effect = lambda url: (
+            HTTP_503 if "example.com" in url else HTTP_OK
         )
         ssl_checker.check.return_value = ssl_valid
 
@@ -233,8 +233,8 @@ class TestCheckAllUrlsUseCase:
             error_message="Previous error",
             checked_at=datetime.now(timezone.utc),
         )
-        health_repo.get_latest_by_url_id.side_effect = (
-            lambda url_id: previous if url_id == 1 else None
+        health_repo.get_latest_by_url_id.side_effect = lambda url_id: (
+            previous if url_id == 1 else None
         )
         http_checker.check.return_value = HTTP_OK
         ssl_checker.check.return_value = ssl_valid

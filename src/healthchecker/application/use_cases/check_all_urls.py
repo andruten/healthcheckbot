@@ -35,16 +35,12 @@ class CheckAllUrlsUseCase:
     async def execute(self) -> list[Alert]:
         urls = await self._url_repo.get_all_active()
         logger.debug("Running health checks for %d URLs", len(urls))
-        results = await asyncio.gather(
-            *[self._check_one(url) for url in urls]
-        )
+        results = await asyncio.gather(*[self._check_one(url) for url in urls])
         return [alert for batch in results for alert in batch]
 
     async def _check_one(self, url: Url) -> list[Alert]:
         try:
-            previous_check = await self._health_check_repo.get_latest_by_url_id(
-                url.id
-            )
+            previous_check = await self._health_check_repo.get_latest_by_url_id(url.id)
 
             http_status, ttfb_ms, error = await self._http_checker.check(url.url)
 
