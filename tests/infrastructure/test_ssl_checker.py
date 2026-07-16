@@ -45,3 +45,24 @@ class TestSslChecker:
         assert record.levelno == logging.WARNING
         assert record.exc_info is None
         assert "SSL certificate verification failed" in record.message
+
+    async def test_network_error_logs_warning_without_traceback(
+        self, checker, mocker, caplog
+    ):
+        import socket
+
+        mocker.patch.object(
+            checker,
+            "_open_tls_connection",
+            side_effect=socket.gaierror("Name or service not known"),
+        )
+
+        with caplog.at_level(logging.WARNING):
+            result = await checker.check("https://unknown.example.com")
+
+        assert result is None
+        assert len(caplog.records) == 1
+        record = caplog.records[0]
+        assert record.levelno == logging.WARNING
+        assert record.exc_info is None
+        assert "Network error checking SSL" in record.message
