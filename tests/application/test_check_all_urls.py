@@ -78,7 +78,9 @@ class TestCheckAllUrlsUseCase:
 
     async def test_unhealthy_url(self, use_case, mocks, ssl_valid):
         _, _, alert_repo, http_checker, ssl_checker = mocks
-        http_checker.check.side_effect = [HTTP_503, HTTP_OK]
+        http_checker.check.side_effect = lambda url: (
+            HTTP_503 if "example.com" in url else HTTP_OK
+        )
         ssl_checker.check.return_value = ssl_valid
 
         alerts = await use_case.execute()
@@ -88,7 +90,9 @@ class TestCheckAllUrlsUseCase:
 
     async def test_url_with_timeout(self, use_case, mocks, ssl_valid):
         _, _, alert_repo, http_checker, ssl_checker = mocks
-        http_checker.check.side_effect = [TIMEOUT, HTTP_OK]
+        http_checker.check.side_effect = lambda url: (
+            TIMEOUT if "example.com" in url else HTTP_OK
+        )
         ssl_checker.check.return_value = ssl_valid
 
         alerts = await use_case.execute()
@@ -148,7 +152,7 @@ class TestCheckAllUrlsUseCase:
 
     async def test_alert_when_transition_to_unhealthy(self, use_case, mocks, ssl_valid):
         _, health_repo, alert_repo, http_checker, ssl_checker = mocks
-        health_repo.get_latest_by_url_id.return_value = HealthCheck(
+        previous = HealthCheck(
             id=98,
             url_id=1,
             http_status=200,
@@ -159,7 +163,12 @@ class TestCheckAllUrlsUseCase:
             error_message=None,
             checked_at=datetime.now(timezone.utc),
         )
-        http_checker.check.side_effect = [HTTP_503, HTTP_OK]
+        health_repo.get_latest_by_url_id.side_effect = lambda url_id: (
+            previous if url_id == 1 else None
+        )
+        http_checker.check.side_effect = lambda url: (
+            HTTP_503 if "example.com" in url else HTTP_OK
+        )
         ssl_checker.check.return_value = ssl_valid
 
         alerts = await use_case.execute()
@@ -224,8 +233,10 @@ class TestCheckAllUrlsUseCase:
             error_message="Previous error",
             checked_at=datetime.now(timezone.utc),
         )
-        health_repo.get_latest_by_url_id.side_effect = [previous, None]
-        http_checker.check.side_effect = [HTTP_OK, HTTP_OK]
+        health_repo.get_latest_by_url_id.side_effect = lambda url_id: (
+            previous if url_id == 1 else None
+        )
+        http_checker.check.return_value = HTTP_OK
         ssl_checker.check.return_value = ssl_valid
 
         alerts = await use_case.execute()
@@ -246,7 +257,7 @@ class TestCheckAllUrlsUseCase:
             error_message=None,
             checked_at=datetime.now(timezone.utc),
         )
-        http_checker.check.side_effect = [HTTP_OK, HTTP_OK]
+        http_checker.check.return_value = HTTP_OK
         ssl_checker.check.return_value = ssl_valid
 
         alerts = await use_case.execute()
