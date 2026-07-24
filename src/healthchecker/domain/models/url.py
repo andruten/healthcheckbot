@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, UTC
 
 
 @dataclass
@@ -16,7 +16,7 @@ class Url:
     def create(
         cls, url: str, name: str | None = None, alert_before_days: int = 30
     ) -> "Url":
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         return cls(
             id=None,
             name=name or url,
