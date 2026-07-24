@@ -51,7 +51,8 @@ class CheckAllUrlsUseCase:
             ssl_expiry = ssl_info.expiration_date if ssl_info else None
             ssl_days = ssl_info.days_remaining if ssl_info else None
             is_healthy = http_result.error is None and (
-                http_result.status_code is not None and 200 <= http_result.status_code < 400
+                http_result.status_code is not None
+                and 200 <= http_result.status_code < 400
             )
 
             check = HealthCheck(

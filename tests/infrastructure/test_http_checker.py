@@ -1,7 +1,10 @@
 import httpx
 import pytest
 
-from healthchecker.infrastructure.checker.http_checker import HttpCheckResult, HttpHealthChecker
+from healthchecker.infrastructure.checker.http_checker import (
+    HttpCheckResult,
+    HttpHealthChecker,
+)
 
 
 class TestHttpHealthChecker:

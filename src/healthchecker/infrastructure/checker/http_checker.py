@@ -22,7 +22,9 @@ class HttpHealthChecker:
             async with httpx.AsyncClient(timeout=self._timeout) as client:
                 response = await client.get(url, follow_redirects=True)
                 ttfb = response.elapsed.total_seconds() * 1000
-                return HttpCheckResult(status_code=response.status_code, ttfb_ms=ttfb, error=None)
+                return HttpCheckResult(
+                    status_code=response.status_code, ttfb_ms=ttfb, error=None
+                )
         except httpx.TimeoutException:
             logger.warning("Timeout checking %s", url)
             return HttpCheckResult(status_code=None, ttfb_ms=None, error="Timeout")
