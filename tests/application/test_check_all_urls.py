@@ -6,12 +6,13 @@ from healthchecker.application.use_cases.check_all_urls import CheckAllUrlsUseCa
 from healthchecker.domain.models.health_check import HealthCheck
 from healthchecker.domain.models.url import Url
 from healthchecker.domain.models.alert import AlertType
+from healthchecker.infrastructure.checker.http_checker import HttpCheckResult
 from healthchecker.infrastructure.checker.ssl_checker import SslInfo
 
 
-HTTP_OK = (200, 100.0, None)
-HTTP_503 = (503, 50.0, None)
-TIMEOUT = (None, None, "Timeout")
+HTTP_OK = HttpCheckResult(status_code=200, ttfb_ms=100.0, error=None)
+HTTP_503 = HttpCheckResult(status_code=503, ttfb_ms=50.0, error=None)
+TIMEOUT = HttpCheckResult(status_code=None, ttfb_ms=None, error="Timeout")
 
 
 class TestCheckAllUrlsUseCase:

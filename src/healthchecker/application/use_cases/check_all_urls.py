@@ -42,7 +42,7 @@ class CheckAllUrlsUseCase:
         try:
             previous_check = await self._health_check_repo.get_latest_by_url_id(url.id)
 
-            http_status, ttfb_ms, error = await self._http_checker.check(url.url)
+            http_result = await self._http_checker.check(url.url)
 
             ssl_info = None
             if url.url.startswith("https"):
@@ -50,19 +50,19 @@ class CheckAllUrlsUseCase:
 
             ssl_expiry = ssl_info.expiration_date if ssl_info else None
             ssl_days = ssl_info.days_remaining if ssl_info else None
-            is_healthy = error is None and (
-                http_status is not None and 200 <= http_status < 400
+            is_healthy = http_result.error is None and (
+                http_result.status_code is not None and 200 <= http_result.status_code < 400
             )
 
             check = HealthCheck(
                 id=None,
                 url_id=url.id,
-                http_status=http_status,
-                ttfb_ms=ttfb_ms,
+                http_status=http_result.status_code,
+                ttfb_ms=http_result.ttfb_ms,
                 ssl_expiration_date=ssl_expiry,
                 ssl_days_remaining=ssl_days,
                 is_healthy=is_healthy,
-                error_message=error,
+                error_message=http_result.error,
                 checked_at=datetime.now(timezone.utc),
             )
 
@@ -95,8 +95,8 @@ class CheckAllUrlsUseCase:
                     alert = HealthCheckService.build_http_down_alert(
                         url.id,
                         url.name,
-                        http_status,
-                        error,
+                        http_result.status_code,
+                        http_result.error,
                     )
                     await self._alert_repo.save(alert)
                     alerts.append(alert)
@@ -108,8 +108,8 @@ class CheckAllUrlsUseCase:
                     alert = HealthCheckService.build_http_up_alert(
                         url.id,
                         url.name,
-                        http_status,
-                        ttfb_ms,
+                        http_result.status_code,
+                        http_result.ttfb_ms,
                     )
                     await self._alert_repo.save(alert)
                     alerts.append(alert)
