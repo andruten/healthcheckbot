@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -10,7 +10,7 @@ class TestGetResultsUseCase:
     @pytest.fixture
     def mock_repo(self, mocker):
         repo = mocker.AsyncMock()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         repo.get_latest_by_url_id.return_value = HealthCheck(
             id=10,
             url_id=1,

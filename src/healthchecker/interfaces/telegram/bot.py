@@ -9,19 +9,19 @@ from telegram.ext import (
     filters,
 )
 
-from healthchecker.infrastructure.config import settings
-from healthchecker.interfaces.telegram.handlers.add_url import AddUrlHandler
-from healthchecker.interfaces.telegram.handlers.list_urls import ListUrlsHandler
-from healthchecker.interfaces.telegram.handlers.delete_url import DeleteUrlHandler
-from healthchecker.interfaces.telegram.handlers.check_now import CheckNowHandler
-from healthchecker.interfaces.telegram.handlers.results import ResultsHandler
-from healthchecker.application.use_cases.manage_urls import ManageUrlsUseCase
-from healthchecker.application.use_cases.get_results import GetResultsUseCase
 from healthchecker.application.use_cases.check_all_urls import CheckAllUrlsUseCase
+from healthchecker.application.use_cases.get_results import GetResultsUseCase
+from healthchecker.application.use_cases.manage_urls import ManageUrlsUseCase
 from healthchecker.domain.repositories.alert_repository import AlertRepository
 from healthchecker.domain.repositories.daily_summary_repository import (
     DailySummaryRepository,
 )
+from healthchecker.infrastructure.config import settings
+from healthchecker.interfaces.telegram.handlers.add_url import AddUrlHandler
+from healthchecker.interfaces.telegram.handlers.check_now import CheckNowHandler
+from healthchecker.interfaces.telegram.handlers.delete_url import DeleteUrlHandler
+from healthchecker.interfaces.telegram.handlers.list_urls import ListUrlsHandler
+from healthchecker.interfaces.telegram.handlers.results import ResultsHandler
 
 logger = logging.getLogger(__name__)
 
@@ -110,10 +110,8 @@ class TelegramBot:
                 await bot.send_message(
                     chat_id=str(chat_id), text=message, parse_mode="Markdown"
                 )
-            except Exception as e:
-                logger.error(
-                    "Failed to send alert to chat %s: %s", chat_id, e, exc_info=True
-                )
+            except Exception:
+                logger.exception("Failed to send alert to chat %s", chat_id)
 
     async def _get_authorized_chat_ids(self) -> set[int]:
         chat_ids: set[int] = set()

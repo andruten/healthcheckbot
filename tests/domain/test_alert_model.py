@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from healthchecker.domain.models.alert import Alert, AlertType
 
@@ -13,7 +13,7 @@ class TestAlertType:
 
 class TestAlertModel:
     def test_create_alert(self):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         alert = Alert(
             id=None,
             url_id=1,
@@ -30,7 +30,7 @@ class TestAlertModel:
         assert alert.created_at == now
 
     def test_alert_with_id(self):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         alert = Alert(
             id=5,
             url_id=2,
@@ -43,7 +43,7 @@ class TestAlertModel:
         assert alert.is_sent is True
 
     def test_mark_as_sent_mutation(self):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         alert = Alert(
             id=1,
             url_id=1,

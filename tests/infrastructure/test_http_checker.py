@@ -1,7 +1,10 @@
 import httpx
 import pytest
 
-from healthchecker.infrastructure.checker.http_checker import HttpHealthChecker
+from healthchecker.infrastructure.checker.http_checker import (
+    HttpCheckResult,
+    HttpHealthChecker,
+)
 
 
 class TestHttpHealthChecker:
@@ -13,41 +16,42 @@ class TestHttpHealthChecker:
         route = respx_mock.get("https://example.com").mock(
             return_value=httpx.Response(200, content="ok"),
         )
-        status, ttfb, error = await checker.check("https://example.com")
-        assert status == 200
-        assert ttfb is not None and ttfb >= 0
-        assert error is None
+        result = await checker.check("https://example.com")
+        assert isinstance(result, HttpCheckResult)
+        assert result.status_code == 200
+        assert result.ttfb_ms is not None and result.ttfb_ms >= 0
+        assert result.error is None
         assert route.called
 
     async def test_not_found(self, checker, respx_mock):
         respx_mock.get("https://example.com/404").mock(
             return_value=httpx.Response(404),
         )
-        status, ttfb, error = await checker.check("https://example.com/404")
-        assert status == 404
-        assert error is None
+        result = await checker.check("https://example.com/404")
+        assert result.status_code == 404
+        assert result.error is None
 
     async def test_timeout(self, checker, respx_mock):
         respx_mock.get("https://example.com").mock(
             side_effect=httpx.TimeoutException("timeout")
         )
-        status, ttfb, error = await checker.check("https://example.com")
-        assert status is None
-        assert ttfb is None
-        assert error == "Timeout"
+        result = await checker.check("https://example.com")
+        assert result.status_code is None
+        assert result.ttfb_ms is None
+        assert result.error == "Timeout"
 
     async def test_request_error(self, checker, respx_mock):
         respx_mock.get("https://example.com").mock(
             side_effect=httpx.RequestError("DNS failure")
         )
-        status, ttfb, error = await checker.check("https://example.com")
-        assert status is None
-        assert ttfb is None
-        assert error == "DNS failure"
+        result = await checker.check("https://example.com")
+        assert result.status_code is None
+        assert result.ttfb_ms is None
+        assert result.error == "DNS failure"
 
     async def test_unexpected_error(self, checker, respx_mock):
         respx_mock.get("https://example.com").mock(side_effect=RuntimeError("weird"))
-        status, ttfb, error = await checker.check("https://example.com")
-        assert status is None
-        assert ttfb is None
-        assert error == "weird"
+        result = await checker.check("https://example.com")
+        assert result.status_code is None
+        assert result.ttfb_ms is None
+        assert result.error == "weird"

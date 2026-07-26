@@ -1,12 +1,12 @@
 import logging
-from datetime import date, datetime, timezone
+from datetime import UTC, datetime
 
 from healthchecker.domain.models.daily_summary import DailySummary
-from healthchecker.domain.repositories.health_check_repository import (
-    HealthCheckRepository,
-)
 from healthchecker.domain.repositories.daily_summary_repository import (
     DailySummaryRepository,
+)
+from healthchecker.domain.repositories.health_check_repository import (
+    HealthCheckRepository,
 )
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ class ConsolidateDailySummariesUseCase:
         self._retention_days = retention_days
 
     async def execute(self) -> int:
-        cutoff = date.today()
+        cutoff = datetime.now(UTC).date()
         pending = await self._health_check_repo.get_dates_needing_consolidation(cutoff)
         if not pending:
             logger.info("No data to consolidate")
@@ -60,7 +60,7 @@ class ConsolidateDailySummariesUseCase:
                     last_http_status=raw[-1].http_status,
                     last_ssl_expiration_date=raw[-1].ssl_expiration_date,
                     last_checked_at=raw[-1].checked_at,
-                    created_at=datetime.now(timezone.utc),
+                    created_at=datetime.now(UTC),
                 )
 
                 await self._summary_repo.save(summary)
@@ -71,13 +71,11 @@ class ConsolidateDailySummariesUseCase:
                     url_id,
                     check_date,
                 )
-            except Exception as e:
-                logger.error(
-                    "Error consolidating url_id=%s date=%s: %s",
+            except Exception:
+                logger.exception(
+                    "Error consolidating url_id=%s date=%s",
                     url_id,
                     check_date,
-                    e,
-                    exc_info=True,
                 )
 
         cutoff.replace(day=1)  # keep current month at minimum

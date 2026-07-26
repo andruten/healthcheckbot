@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable
-from datetime import date
+from datetime import UTC, date, datetime
 
 from healthchecker.application.use_cases.check_all_urls import CheckAllUrlsUseCase
 from healthchecker.application.use_cases.consolidate_summaries import (
@@ -40,8 +40,8 @@ class Scheduler:
                 if alerts:
                     logger.info("%d alerts generated", len(alerts))
                     await self._dispatch_alerts(alerts)
-            except Exception as e:
-                logger.error("Scheduler error: %s", e, exc_info=True)
+            except Exception:
+                logger.exception("Scheduler error")
 
             if self._should_consolidate():
                 await self._try_consolidation()
@@ -53,7 +53,7 @@ class Scheduler:
         logger.info("Scheduler stopped")
 
     def _should_consolidate(self) -> bool:
-        today = date.today()
+        today = datetime.now(UTC).date()
         return self._last_consolidation_date != today
 
     async def _dispatch_alerts(self, alerts):
@@ -61,8 +61,8 @@ class Scheduler:
             if self._send_alert:
                 try:
                     await self._send_alert(alert.message)
-                except Exception as e:
-                    logger.error("Failed to send alert: %s", e, exc_info=True)
+                except Exception:
+                    logger.exception("Failed to send alert")
             if self._alert_repo and alert.id is not None:
                 await self._alert_repo.mark_as_sent(alert.id)
 
@@ -71,8 +71,8 @@ class Scheduler:
             return
         try:
             count = await self._consolidate.execute()
-            self._last_consolidation_date = date.today()
+            self._last_consolidation_date = datetime.now(UTC).date()
             if count:
                 logger.info("Consolidation complete: %d summaries created", count)
-        except Exception as e:
-            logger.error("Consolidation error: %s", e, exc_info=True)
+        except Exception:
+            logger.exception("Consolidation error")

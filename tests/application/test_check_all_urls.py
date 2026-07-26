@@ -1,17 +1,17 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
 from healthchecker.application.use_cases.check_all_urls import CheckAllUrlsUseCase
+from healthchecker.domain.models.alert import AlertType
 from healthchecker.domain.models.health_check import HealthCheck
 from healthchecker.domain.models.url import Url
-from healthchecker.domain.models.alert import AlertType
+from healthchecker.infrastructure.checker.http_checker import HttpCheckResult
 from healthchecker.infrastructure.checker.ssl_checker import SslInfo
 
-
-HTTP_OK = (200, 100.0, None)
-HTTP_503 = (503, 50.0, None)
-TIMEOUT = (None, None, "Timeout")
+HTTP_OK = HttpCheckResult(status_code=200, ttfb_ms=100.0, error=None)
+HTTP_503 = HttpCheckResult(status_code=503, ttfb_ms=50.0, error=None)
+TIMEOUT = HttpCheckResult(status_code=None, ttfb_ms=None, error="Timeout")
 
 
 class TestCheckAllUrlsUseCase:
@@ -41,7 +41,7 @@ class TestCheckAllUrlsUseCase:
     @pytest.fixture
     def ssl_valid(self):
         return SslInfo(
-            expiration_date=datetime(2026, 12, 31, tzinfo=timezone.utc),
+            expiration_date=datetime(2026, 12, 31, tzinfo=UTC),
             days_remaining=200,
         )
 
@@ -89,7 +89,7 @@ class TestCheckAllUrlsUseCase:
         alert_repo.save.assert_awaited_once()
 
     async def test_url_with_timeout(self, use_case, mocks, ssl_valid):
-        _, _, alert_repo, http_checker, ssl_checker = mocks
+        _, _, _alert_repo, http_checker, ssl_checker = mocks
         http_checker.check.side_effect = lambda url: (
             TIMEOUT if "example.com" in url else HTTP_OK
         )
@@ -100,10 +100,10 @@ class TestCheckAllUrlsUseCase:
         assert alerts[0].alert_type == AlertType.HTTP_DOWN
 
     async def test_ssl_expiry_alert(self, use_case, mocks):
-        _, _, alert_repo, http_checker, ssl_checker = mocks
+        _, _, _alert_repo, http_checker, ssl_checker = mocks
         http_checker.check.return_value = HTTP_OK
         ssl_checker.check.return_value = SslInfo(
-            expiration_date=datetime(2026, 6, 20, tzinfo=timezone.utc),
+            expiration_date=datetime(2026, 6, 20, tzinfo=UTC),
             days_remaining=10,
         )
 
@@ -113,7 +113,7 @@ class TestCheckAllUrlsUseCase:
         assert "10 days" in alerts[0].message
 
     async def test_non_https_skips_ssl(self, use_case, mocks):
-        _, _, alert_repo, http_checker, ssl_checker = mocks
+        _, _, _alert_repo, http_checker, ssl_checker = mocks
         http_checker.check.return_value = HTTP_OK
         ssl_checker.check.return_value = None
 
@@ -138,10 +138,10 @@ class TestCheckAllUrlsUseCase:
             http_status=503,
             ttfb_ms=None,
             ssl_days_remaining=200,
-            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=timezone.utc),
+            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=UTC),
             is_healthy=False,
             error_message="Previous error",
-            checked_at=datetime.now(timezone.utc),
+            checked_at=datetime.now(UTC),
         )
         http_checker.check.return_value = HTTP_503
         ssl_checker.check.return_value = ssl_valid
@@ -151,17 +151,17 @@ class TestCheckAllUrlsUseCase:
         alert_repo.save.assert_not_called()
 
     async def test_alert_when_transition_to_unhealthy(self, use_case, mocks, ssl_valid):
-        _, health_repo, alert_repo, http_checker, ssl_checker = mocks
+        _, health_repo, _alert_repo, http_checker, ssl_checker = mocks
         previous = HealthCheck(
             id=98,
             url_id=1,
             http_status=200,
             ttfb_ms=100.0,
             ssl_days_remaining=200,
-            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=timezone.utc),
+            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=UTC),
             is_healthy=True,
             error_message=None,
-            checked_at=datetime.now(timezone.utc),
+            checked_at=datetime.now(UTC),
         )
         health_repo.get_latest_by_url_id.side_effect = lambda url_id: (
             previous if url_id == 1 else None
@@ -183,14 +183,14 @@ class TestCheckAllUrlsUseCase:
             http_status=200,
             ttfb_ms=100.0,
             ssl_days_remaining=10,
-            ssl_expiration_date=datetime(2026, 6, 20, tzinfo=timezone.utc),
+            ssl_expiration_date=datetime(2026, 6, 20, tzinfo=UTC),
             is_healthy=True,
             error_message=None,
-            checked_at=datetime.now(timezone.utc),
+            checked_at=datetime.now(UTC),
         )
         http_checker.check.return_value = HTTP_OK
         ssl_checker.check.return_value = SslInfo(
-            expiration_date=datetime(2026, 6, 20, tzinfo=timezone.utc),
+            expiration_date=datetime(2026, 6, 20, tzinfo=UTC),
             days_remaining=9,
         )
 
@@ -198,21 +198,21 @@ class TestCheckAllUrlsUseCase:
         assert alerts == []
 
     async def test_ssl_alert_when_newly_expired(self, use_case, mocks):
-        _, health_repo, alert_repo, http_checker, ssl_checker = mocks
+        _, health_repo, _alert_repo, http_checker, ssl_checker = mocks
         health_repo.get_latest_by_url_id.return_value = HealthCheck(
             id=96,
             url_id=1,
             http_status=200,
             ttfb_ms=100.0,
             ssl_days_remaining=31,
-            ssl_expiration_date=datetime(2026, 7, 18, tzinfo=timezone.utc),
+            ssl_expiration_date=datetime(2026, 7, 18, tzinfo=UTC),
             is_healthy=True,
             error_message=None,
-            checked_at=datetime.now(timezone.utc),
+            checked_at=datetime.now(UTC),
         )
         http_checker.check.return_value = HTTP_OK
         ssl_checker.check.return_value = SslInfo(
-            expiration_date=datetime(2026, 6, 20, tzinfo=timezone.utc),
+            expiration_date=datetime(2026, 6, 20, tzinfo=UTC),
             days_remaining=10,
         )
 
@@ -221,17 +221,17 @@ class TestCheckAllUrlsUseCase:
         assert alerts[0].alert_type == AlertType.SSL_EXPIRY
 
     async def test_alert_when_transition_to_healthy(self, use_case, mocks, ssl_valid):
-        _, health_repo, alert_repo, http_checker, ssl_checker = mocks
+        _, health_repo, _alert_repo, http_checker, ssl_checker = mocks
         previous = HealthCheck(
             id=95,
             url_id=1,
             http_status=503,
             ttfb_ms=None,
             ssl_days_remaining=200,
-            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=timezone.utc),
+            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=UTC),
             is_healthy=False,
             error_message="Previous error",
-            checked_at=datetime.now(timezone.utc),
+            checked_at=datetime.now(UTC),
         )
         health_repo.get_latest_by_url_id.side_effect = lambda url_id: (
             previous if url_id == 1 else None
@@ -252,10 +252,10 @@ class TestCheckAllUrlsUseCase:
             http_status=200,
             ttfb_ms=100.0,
             ssl_days_remaining=200,
-            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=timezone.utc),
+            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=UTC),
             is_healthy=True,
             error_message=None,
-            checked_at=datetime.now(timezone.utc),
+            checked_at=datetime.now(UTC),
         )
         http_checker.check.return_value = HTTP_OK
         ssl_checker.check.return_value = ssl_valid

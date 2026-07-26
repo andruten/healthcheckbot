@@ -56,8 +56,10 @@ class AddUrlHandler:
                 f"SSL alert threshold: {alert_days} days",
                 parse_mode="Markdown",
             )
-        except Exception as e:
-            await update.message.reply_text(f"Error adding URL: {e}")
+        except Exception:  # noqa: BLE001
+            await update.message.reply_text(
+                "Error adding URL. Please check the URL and try again."
+            )
 
     @staticmethod
     def _is_valid_url(url: str) -> bool:

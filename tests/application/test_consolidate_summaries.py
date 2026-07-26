@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 import pytest
 
@@ -11,7 +11,7 @@ from healthchecker.domain.models.health_check import HealthCheck
 class TestConsolidateDailySummariesUseCase:
     @pytest.fixture
     def now(self):
-        return datetime(2026, 6, 10, 12, 0, 0, tzinfo=timezone.utc)
+        return datetime(2026, 6, 10, 12, 0, 0, tzinfo=UTC)
 
     @pytest.fixture
     def raw_checks(self, now):
@@ -36,7 +36,7 @@ class TestConsolidateDailySummariesUseCase:
                 ssl_days_remaining=50,
                 is_healthy=True,
                 error_message=None,
-                checked_at=datetime(2026, 6, 10, 12, 1, 0, tzinfo=timezone.utc),
+                checked_at=datetime(2026, 6, 10, 12, 1, 0, tzinfo=UTC),
             ),
             HealthCheck(
                 id=3,
@@ -47,7 +47,7 @@ class TestConsolidateDailySummariesUseCase:
                 ssl_days_remaining=None,
                 is_healthy=False,
                 error_message="Timeout",
-                checked_at=datetime(2026, 6, 10, 12, 2, 0, tzinfo=timezone.utc),
+                checked_at=datetime(2026, 6, 10, 12, 2, 0, tzinfo=UTC),
             ),
         ]
 

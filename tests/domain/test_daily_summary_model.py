@@ -1,11 +1,11 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from healthchecker.domain.models.daily_summary import DailySummary
 
 
 class TestDailySummaryModel:
     def test_create_summary(self):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         s = DailySummary(
             id=None,
             url_id=1,
