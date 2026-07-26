@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from healthchecker.domain.models.alert import AlertType
 from healthchecker.domain.services.health_check_service import HealthCheckService
@@ -31,7 +31,7 @@ class TestHealthCheckService:
         assert alert.is_sent is False
 
     def test_build_ssl_alert_with_expiration(self):
-        exp_date = datetime(2026, 7, 15, tzinfo=timezone.utc)
+        exp_date = datetime(2026, 7, 15, tzinfo=UTC)
         alert = HealthCheckService.build_ssl_alert(
             url_id=1,
             url_name="Example",

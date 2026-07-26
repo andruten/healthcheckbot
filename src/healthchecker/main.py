@@ -1,35 +1,33 @@
 import asyncio
 import logging
 
+from healthchecker.application.use_cases.check_all_urls import CheckAllUrlsUseCase
+from healthchecker.application.use_cases.consolidate_summaries import (
+    ConsolidateDailySummariesUseCase,
+)
+from healthchecker.application.use_cases.get_results import GetResultsUseCase
+from healthchecker.application.use_cases.manage_urls import ManageUrlsUseCase
+from healthchecker.infrastructure.checker.http_checker import HttpHealthChecker
+from healthchecker.infrastructure.checker.ssl_checker import SslChecker
 from healthchecker.infrastructure.config import settings
-from healthchecker.infrastructure.persistence.database import (
-    connect_database,
-    close_database,
-)
-from healthchecker.infrastructure.persistence.url_repository import (
-    TortoiseUrlRepository,
-)
-from healthchecker.infrastructure.persistence.health_check_repository import (
-    TortoiseHealthCheckRepository,
-)
 from healthchecker.infrastructure.persistence.alert_repository import (
     TortoiseAlertRepository,
 )
 from healthchecker.infrastructure.persistence.daily_summary_repository import (
     TortoiseDailySummaryRepository,
 )
-from healthchecker.infrastructure.checker.http_checker import HttpHealthChecker
-from healthchecker.infrastructure.checker.ssl_checker import SslChecker
-
-from healthchecker.application.use_cases.manage_urls import ManageUrlsUseCase
-from healthchecker.application.use_cases.get_results import GetResultsUseCase
-from healthchecker.application.use_cases.check_all_urls import CheckAllUrlsUseCase
-from healthchecker.application.use_cases.consolidate_summaries import (
-    ConsolidateDailySummariesUseCase,
+from healthchecker.infrastructure.persistence.database import (
+    close_database,
+    connect_database,
 )
-
-from healthchecker.interfaces.telegram.bot import TelegramBot
+from healthchecker.infrastructure.persistence.health_check_repository import (
+    TortoiseHealthCheckRepository,
+)
+from healthchecker.infrastructure.persistence.url_repository import (
+    TortoiseUrlRepository,
+)
 from healthchecker.interfaces.scheduler import Scheduler
+from healthchecker.interfaces.telegram.bot import TelegramBot
 
 logging.basicConfig(
     level=logging.WARNING,

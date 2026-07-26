@@ -1,12 +1,12 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from healthchecker.domain.models.health_check import HealthCheck
 from healthchecker.domain.repositories.health_check_repository import (
     HealthCheckRepository as HealthCheckRepositoryInterface,
 )
 from healthchecker.infrastructure.persistence.tortoise_models import (
-    HealthCheckModel,
     DailySummaryModel,
+    HealthCheckModel,
 )
 
 
@@ -58,7 +58,7 @@ class TortoiseHealthCheckRepository(HealthCheckRepositoryInterface):
             23,
             59,
             59,
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         )
         raw: set[tuple[int, date]] = set()
         rows = await HealthCheckModel.filter(
@@ -84,7 +84,7 @@ class TortoiseHealthCheckRepository(HealthCheckRepositoryInterface):
         self, url_id: int, target_date: date
     ) -> list[HealthCheck]:
         start = datetime(
-            target_date.year, target_date.month, target_date.day, tzinfo=timezone.utc
+            target_date.year, target_date.month, target_date.day, tzinfo=UTC
         )
         end = datetime(
             target_date.year,
@@ -93,7 +93,7 @@ class TortoiseHealthCheckRepository(HealthCheckRepositoryInterface):
             23,
             59,
             59,
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         )
         rows = await HealthCheckModel.filter(
             url_id=url_id,
@@ -110,7 +110,7 @@ class TortoiseHealthCheckRepository(HealthCheckRepositoryInterface):
             23,
             59,
             59,
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         )
         deleted = await HealthCheckModel.filter(checked_at__lte=end).delete()
         return deleted

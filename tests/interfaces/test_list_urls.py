@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -14,10 +14,10 @@ class TestListUrlsHandler:
             http_status=200,
             ttfb_ms=120.0,
             ssl_days_remaining=45,
-            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=timezone.utc),
+            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=UTC),
             is_healthy=True,
             error_message=None,
-            checked_at=datetime.now(timezone.utc),
+            checked_at=datetime.now(UTC),
         )
         result = ListUrlsHandler._format_status(check, alert_before_days=30)
         assert "✅" in result
@@ -33,10 +33,10 @@ class TestListUrlsHandler:
             http_status=200,
             ttfb_ms=100.0,
             ssl_days_remaining=10,
-            ssl_expiration_date=datetime(2026, 7, 1, tzinfo=timezone.utc),
+            ssl_expiration_date=datetime(2026, 7, 1, tzinfo=UTC),
             is_healthy=True,
             error_message=None,
-            checked_at=datetime.now(timezone.utc),
+            checked_at=datetime.now(UTC),
         )
         result = ListUrlsHandler._format_status(check, alert_before_days=30)
         assert "⚠️" in result
@@ -49,10 +49,10 @@ class TestListUrlsHandler:
             http_status=200,
             ttfb_ms=100.0,
             ssl_days_remaining=30,
-            ssl_expiration_date=datetime(2026, 7, 19, tzinfo=timezone.utc),
+            ssl_expiration_date=datetime(2026, 7, 19, tzinfo=UTC),
             is_healthy=True,
             error_message=None,
-            checked_at=datetime.now(timezone.utc),
+            checked_at=datetime.now(UTC),
         )
         result = ListUrlsHandler._format_status(check, alert_before_days=30)
         assert "⚠️" in result
@@ -64,10 +64,10 @@ class TestListUrlsHandler:
             http_status=503,
             ttfb_ms=None,
             ssl_days_remaining=45,
-            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=timezone.utc),
+            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=UTC),
             is_healthy=False,
             error_message=None,
-            checked_at=datetime.now(timezone.utc),
+            checked_at=datetime.now(UTC),
         )
         result = ListUrlsHandler._format_status(check, alert_before_days=30)
         assert "❌" in result
@@ -83,7 +83,7 @@ class TestListUrlsHandler:
             ssl_expiration_date=None,
             is_healthy=False,
             error_message="Connection timeout",
-            checked_at=datetime.now(timezone.utc),
+            checked_at=datetime.now(UTC),
         )
         result = ListUrlsHandler._format_status(check, alert_before_days=30)
         assert "❌ Error: Connection timeout" == result
@@ -98,7 +98,7 @@ class TestListUrlsHandler:
             ssl_expiration_date=None,
             is_healthy=True,
             error_message=None,
-            checked_at=datetime.now(timezone.utc),
+            checked_at=datetime.now(UTC),
         )
         result = ListUrlsHandler._format_status(check, alert_before_days=30)
         assert "✅" in result
@@ -114,7 +114,7 @@ class TestListUrlsHandler:
             ssl_expiration_date=None,
             is_healthy=True,
             error_message=None,
-            checked_at=datetime.now(timezone.utc),
+            checked_at=datetime.now(UTC),
         )
         result = ListUrlsHandler._format_status(check, alert_before_days=30)
         assert "✅" in result
@@ -129,10 +129,10 @@ class TestListUrlsHandler:
             http_status=200,
             ttfb_ms=90.0,
             ssl_days_remaining=45,
-            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=timezone.utc),
+            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=UTC),
             is_healthy=True,
             error_message=None,
-            checked_at=datetime.now(timezone.utc),
+            checked_at=datetime.now(UTC),
         )
 
     async def test_handler_no_urls(self, mocker):
@@ -191,7 +191,7 @@ class TestListUrlsHandler:
                 "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: "
                 "self-signed certificate (_ssl.c:1082)"
             ),
-            checked_at=datetime.now(timezone.utc),
+            checked_at=datetime.now(UTC),
         )
 
         manage_urls = mocker.AsyncMock()
@@ -243,10 +243,10 @@ class TestListUrlsHandler:
             http_status=200,
             ttfb_ms=90.0,
             ssl_days_remaining=10,
-            ssl_expiration_date=datetime(2026, 7, 1, tzinfo=timezone.utc),
+            ssl_expiration_date=datetime(2026, 7, 1, tzinfo=UTC),
             is_healthy=True,
             error_message=None,
-            checked_at=datetime.now(timezone.utc),
+            checked_at=datetime.now(UTC),
         )
 
         manage_urls = mocker.AsyncMock()

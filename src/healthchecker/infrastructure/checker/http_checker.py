@@ -32,5 +32,5 @@ class HttpHealthChecker:
             logger.warning("Request error checking %s: %s", url, e)
             return HttpCheckResult(status_code=None, ttfb_ms=None, error=str(e))
         except Exception as e:
-            logger.error("Unexpected error checking %s: %s", url, e, exc_info=True)
+            logger.exception("Unexpected error checking %s", url)
             return HttpCheckResult(status_code=None, ttfb_ms=None, error=str(e))

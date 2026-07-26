@@ -1,11 +1,11 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from healthchecker.domain.models.health_check import HealthCheck
 
 
 class TestHealthCheckModel:
     def test_create_health_check(self):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         check = HealthCheck(
             id=None,
             url_id=1,
@@ -26,7 +26,7 @@ class TestHealthCheckModel:
         assert check.error_message is None
 
     def test_health_check_is_frozen(self):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         check = HealthCheck(
             id=1,
             url_id=1,
@@ -44,7 +44,7 @@ class TestHealthCheckModel:
             check.is_healthy = True
 
     def test_health_check_with_error(self):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         check = HealthCheck(
             id=2,
             url_id=1,
@@ -61,7 +61,7 @@ class TestHealthCheckModel:
         assert check.error_message == "Connection refused"
 
     def test_health_check_equality(self):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         a = HealthCheck(1, 1, 200, 10.0, now, 30, True, None, now)
         b = HealthCheck(1, 1, 200, 10.0, now, 30, True, None, now)
         assert a == b

@@ -1,8 +1,8 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from healthchecker.application.use_cases.manage_urls import ManageUrlsUseCase
 from healthchecker.application.use_cases.get_results import GetResultsUseCase
+from healthchecker.application.use_cases.manage_urls import ManageUrlsUseCase
 from healthchecker.interfaces.telegram.markdown import markdown_escape
 
 

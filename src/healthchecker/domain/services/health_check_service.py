@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from healthchecker.domain.models.alert import Alert, AlertType
 
@@ -31,7 +31,7 @@ class HealthCheckService:
                 f"(threshold: {threshold_days} days)."
             ),
             is_sent=False,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
 
     @staticmethod
@@ -47,7 +47,7 @@ class HealthCheckService:
                 + (f"HTTP {status}" if status else f"Error: {error}")
             ),
             is_sent=False,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
 
     @staticmethod
@@ -67,5 +67,5 @@ class HealthCheckService:
                 + (f" HTTP {status}{ttfb_part}" if status else "")
             ),
             is_sent=False,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )

@@ -1,7 +1,7 @@
 import logging
 import ssl
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class SslChecker:
                 return None
 
             ctx = ssl.create_default_context()
-            reader, writer = await self._open_tls_connection(host, ctx)
+            _reader, writer = await self._open_tls_connection(host, ctx)
 
             cert = writer.get_extra_info("ssl_object").getpeercert()
             writer.close()
@@ -34,9 +34,9 @@ class SslChecker:
                 return None
 
             exp_date = datetime.strptime(exp_str, "%b %d %H:%M:%S %Y %Z").replace(
-                tzinfo=timezone.utc
+                tzinfo=UTC
             )
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             days_remaining = (exp_date - now).days
 
             return SslInfo(expiration_date=exp_date, days_remaining=days_remaining)
@@ -50,8 +50,8 @@ class SslChecker:
         except OSError as e:
             logger.warning("Network error checking SSL for %s: %s", url, e)
             return None
-        except Exception as e:
-            logger.error("SSL check error for %s: %s", url, e, exc_info=True)
+        except Exception:
+            logger.exception("SSL check error for %s", url)
             return None
 
     @staticmethod

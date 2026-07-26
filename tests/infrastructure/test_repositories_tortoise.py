@@ -1,24 +1,24 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 import pytest
 import pytest_asyncio
 from tortoise.contrib.test import tortoise_test_context
 
-from healthchecker.domain.models.url import Url
-from healthchecker.domain.models.health_check import HealthCheck
 from healthchecker.domain.models.alert import Alert, AlertType
 from healthchecker.domain.models.daily_summary import DailySummary
-from healthchecker.infrastructure.persistence.url_repository import (
-    TortoiseUrlRepository,
-)
-from healthchecker.infrastructure.persistence.health_check_repository import (
-    TortoiseHealthCheckRepository,
-)
+from healthchecker.domain.models.health_check import HealthCheck
+from healthchecker.domain.models.url import Url
 from healthchecker.infrastructure.persistence.alert_repository import (
     TortoiseAlertRepository,
 )
 from healthchecker.infrastructure.persistence.daily_summary_repository import (
     TortoiseDailySummaryRepository,
+)
+from healthchecker.infrastructure.persistence.health_check_repository import (
+    TortoiseHealthCheckRepository,
+)
+from healthchecker.infrastructure.persistence.url_repository import (
+    TortoiseUrlRepository,
 )
 
 
@@ -80,7 +80,7 @@ class TestTortoiseUrlRepository:
 
 class TestTortoiseHealthCheckRepository:
     async def test_save_and_get_latest(self, hc_repo, sample_url):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         check = HealthCheck(
             id=None,
             url_id=sample_url.id,
@@ -101,7 +101,7 @@ class TestTortoiseHealthCheckRepository:
         assert latest.http_status == 200
 
     async def test_get_by_url_id_with_limit(self, hc_repo, sample_url):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for i in range(5):
             await hc_repo.save(
                 HealthCheck(
@@ -120,8 +120,8 @@ class TestTortoiseHealthCheckRepository:
         assert len(results) == 3
 
     async def test_purge_older_than(self, hc_repo, sample_url):
-        old = datetime(2025, 1, 1, tzinfo=timezone.utc)
-        now = datetime.now(timezone.utc)
+        old = datetime(2025, 1, 1, tzinfo=UTC)
+        now = datetime.now(UTC)
         await hc_repo.save(
             HealthCheck(
                 id=None,
@@ -139,7 +139,7 @@ class TestTortoiseHealthCheckRepository:
         assert deleted >= 1
 
     async def test_get_dates_needing_consolidation(self, hc_repo, sample_url):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         await hc_repo.save(
             HealthCheck(
                 id=None,
@@ -160,7 +160,7 @@ class TestTortoiseHealthCheckRepository:
 
 class TestTortoiseAlertRepository:
     async def test_save_and_get_unsent(self, alert_repo, sample_url):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         alert = Alert(
             id=None,
             url_id=sample_url.id,
@@ -176,7 +176,7 @@ class TestTortoiseAlertRepository:
         assert len(unsent) >= 1
 
     async def test_mark_as_sent(self, alert_repo, sample_url):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         alert = Alert(
             id=None,
             url_id=sample_url.id,

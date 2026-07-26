@@ -13,7 +13,7 @@ class Url:
     id: UrlId
     name: str
     url: str
-    alert_before_days: int       # days threshold for SSL expiry alerts
+    alert_before_days: int  # days threshold for SSL expiry alerts
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -27,7 +27,7 @@ An `Url` is the central entity — it represents a monitored endpoint. It has id
 class Alert:
     id: AlertId
     url_id: UrlId
-    alert_type: AlertType       # enum: SSL_EXPIRY, HTTP_DOWN
+    alert_type: AlertType  # enum: SSL_EXPIRY, HTTP_DOWN
     message: str
     is_sent: bool
     created_at: datetime

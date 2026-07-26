@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from healthchecker.domain.models.health_check import HealthCheck
 from healthchecker.interfaces.telegram.handlers.results import ResultsHandler
@@ -18,7 +18,7 @@ class TestResultsHandler:
                 "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: "
                 "self-signed certificate (_ssl.c:1082)"
             ),
-            checked_at=datetime(2026, 7, 13, 21, 0, tzinfo=timezone.utc),
+            checked_at=datetime(2026, 7, 13, 21, 0, tzinfo=UTC),
         )
 
         result = ResultsHandler._format_raw_check(check)

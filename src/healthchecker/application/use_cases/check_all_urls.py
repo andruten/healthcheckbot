@@ -1,15 +1,15 @@
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from healthchecker.domain.models.health_check import HealthCheck
 from healthchecker.domain.models.alert import Alert
+from healthchecker.domain.models.health_check import HealthCheck
 from healthchecker.domain.models.url import Url
-from healthchecker.domain.repositories.url_repository import UrlRepository
+from healthchecker.domain.repositories.alert_repository import AlertRepository
 from healthchecker.domain.repositories.health_check_repository import (
     HealthCheckRepository,
 )
-from healthchecker.domain.repositories.alert_repository import AlertRepository
+from healthchecker.domain.repositories.url_repository import UrlRepository
 from healthchecker.domain.services.health_check_service import HealthCheckService
 from healthchecker.infrastructure.checker.http_checker import HttpHealthChecker
 from healthchecker.infrastructure.checker.ssl_checker import SslChecker
@@ -64,7 +64,7 @@ class CheckAllUrlsUseCase:
                 ssl_days_remaining=ssl_days,
                 is_healthy=is_healthy,
                 error_message=http_result.error,
-                checked_at=datetime.now(timezone.utc),
+                checked_at=datetime.now(UTC),
             )
 
             await self._health_check_repo.save(check)
@@ -117,6 +117,6 @@ class CheckAllUrlsUseCase:
 
             return alerts
 
-        except Exception as e:
-            logger.error("Error checking URL %s: %s", url.url, e, exc_info=True)
+        except Exception:
+            logger.exception("Error checking URL %s", url.url)
             return []
