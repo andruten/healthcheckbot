@@ -49,6 +49,22 @@ class TestHttpHealthChecker:
         assert result.ttfb_ms is None
         assert result.error == "DNS failure"
 
+    async def test_retries_transient_connection_error_before_returning_success(
+        self, checker, respx_mock
+    ):
+        route = respx_mock.get("https://example.com").mock(
+            side_effect=[
+                httpx.ConnectError("DNS failure"),
+                httpx.Response(200, content="ok"),
+            ]
+        )
+
+        result = await checker.check("https://example.com")
+
+        assert result.status_code == 200
+        assert result.error is None
+        assert route.call_count == 2
+
     async def test_unexpected_error(self, checker, respx_mock):
         respx_mock.get("https://example.com").mock(side_effect=RuntimeError("weird"))
         result = await checker.check("https://example.com")
