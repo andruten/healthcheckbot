@@ -7,6 +7,8 @@ class AlertType(str, Enum):
     SSL_EXPIRY = "ssl_expiry"
     HTTP_DOWN = "http_down"
     HTTP_UP = "http_up"
+    DEGRADATION_START = "degradation_start"
+    DEGRADATION_RECOVER = "degradation_recover"
 
 
 @dataclass

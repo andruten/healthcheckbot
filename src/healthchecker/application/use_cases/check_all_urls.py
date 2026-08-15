@@ -10,9 +10,11 @@ from healthchecker.domain.repositories.health_check_repository import (
     HealthCheckRepository,
 )
 from healthchecker.domain.repositories.url_repository import UrlRepository
+from healthchecker.domain.services.degradation_service import DegradationDetector
 from healthchecker.domain.services.health_check_service import HealthCheckService
 from healthchecker.infrastructure.checker.http_checker import HttpHealthChecker
 from healthchecker.infrastructure.checker.ssl_checker import SslChecker
+from healthchecker.infrastructure.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -25,12 +27,29 @@ class CheckAllUrlsUseCase:
         alert_repo: AlertRepository,
         http_checker: HttpHealthChecker,
         ssl_checker: SslChecker,
+        degradation_detector: DegradationDetector | None = None,
+        degradation_enabled: bool | None = None,
     ):
         self._url_repo = url_repo
         self._health_check_repo = health_check_repo
         self._alert_repo = alert_repo
         self._http_checker = http_checker
         self._ssl_checker = ssl_checker
+        self._degradation_enabled = (
+            settings.degradation_enabled
+            if degradation_enabled is None
+            else degradation_enabled
+        )
+        self._degradation_detector = degradation_detector or DegradationDetector(
+            window_size=settings.degradation_window_size,
+            trend_size=settings.degradation_trend_size,
+            min_checks=settings.degradation_min_checks,
+            min_ttfb_samples=settings.degradation_min_ttfb_samples,
+            ttfb_multiplier=settings.ttfb_degradation_multiplier,
+            ttfb_floor_ms=settings.ttfb_warn_floor_ms,
+            failure_ratio_max=settings.degradation_failure_ratio,
+            min_failures=settings.degradation_min_failures,
+        )
 
     async def execute(self) -> list[Alert]:
         urls = await self._url_repo.get_all_active()
@@ -40,7 +59,11 @@ class CheckAllUrlsUseCase:
 
     async def _check_one(self, url: Url) -> list[Alert]:
         try:
-            previous_check = await self._health_check_repo.get_latest_by_url_id(url.id)
+            window_size = settings.degradation_window_size
+            history = await self._health_check_repo.get_by_url_id(
+                url.id, limit=window_size
+            )
+            previous_check = history[0] if history else None
 
             http_result = await self._http_checker.check(url.url)
 
@@ -70,6 +93,24 @@ class CheckAllUrlsUseCase:
             await self._health_check_repo.save(check)
 
             alerts: list[Alert] = []
+
+            if self._degradation_enabled:
+                previous_status = self._degradation_detector.detect(history)
+                current_status = self._degradation_detector.detect(
+                    [check, *history[: window_size - 1]]
+                )
+                if current_status.is_degraded and not previous_status.is_degraded:
+                    alert = HealthCheckService.build_degradation_start_alert(
+                        url.id, url.name, current_status
+                    )
+                    await self._alert_repo.save(alert)
+                    alerts.append(alert)
+                elif not current_status.is_degraded and previous_status.is_degraded:
+                    alert = HealthCheckService.build_degradation_recover_alert(
+                        url.id, url.name, current_status
+                    )
+                    await self._alert_repo.save(alert)
+                    alerts.append(alert)
 
             if ssl_days is not None and HealthCheckService.should_alert_ssl(
                 ssl_days, url.alert_before_days

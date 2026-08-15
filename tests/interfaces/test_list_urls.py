@@ -3,6 +3,10 @@ from datetime import UTC, datetime
 import pytest
 
 from healthchecker.domain.models.health_check import HealthCheck
+from healthchecker.domain.services.degradation_service import (
+    DegradationReason,
+    DegradationStatus,
+)
 from healthchecker.interfaces.telegram.handlers.list_urls import ListUrlsHandler
 
 
@@ -160,6 +164,7 @@ class TestListUrlsHandler:
         manage_urls.list_all.return_value = [url]
         get_results = mocker.AsyncMock()
         get_results.get_latest.return_value = mock_check
+        get_results.get_status.return_value = DegradationStatus(is_degraded=False)
         handler = ListUrlsHandler(manage_urls, get_results)
 
         update = mocker.AsyncMock()
@@ -198,6 +203,7 @@ class TestListUrlsHandler:
         manage_urls.list_all.return_value = [url]
         get_results = mocker.AsyncMock()
         get_results.get_latest.return_value = check
+        get_results.get_status.return_value = DegradationStatus(is_degraded=False)
         handler = ListUrlsHandler(manage_urls, get_results)
 
         update = mocker.AsyncMock()
@@ -253,6 +259,7 @@ class TestListUrlsHandler:
         manage_urls.list_all.return_value = [url]
         get_results = mocker.AsyncMock()
         get_results.get_latest.return_value = check
+        get_results.get_status.return_value = DegradationStatus(is_degraded=False)
         handler = ListUrlsHandler(manage_urls, get_results)
 
         update = mocker.AsyncMock()
@@ -261,3 +268,41 @@ class TestListUrlsHandler:
 
         text = update.message.reply_text.call_args[0][0]
         assert "⚠️" in text
+
+    async def test_handler_degraded_icon(self, mocker):
+        url = mocker.Mock()
+        url.id = 1
+        url.name = "Example"
+        url.url = "https://example.com"
+        url.alert_before_days = 30
+
+        check = HealthCheck(
+            id=12,
+            url_id=1,
+            http_status=200,
+            ttfb_ms=90.0,
+            ssl_days_remaining=45,
+            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=UTC),
+            is_healthy=True,
+            error_message=None,
+            checked_at=datetime.now(UTC),
+        )
+
+        manage_urls = mocker.AsyncMock()
+        manage_urls.list_all.return_value = [url]
+        get_results = mocker.AsyncMock()
+        get_results.get_latest.return_value = check
+        get_results.get_status.return_value = DegradationStatus(
+            is_degraded=True,
+            reason=DegradationReason.TTFB_INCREASE,
+            baseline_ttfb_ms=100.0,
+            current_ttfb_ms=2000.0,
+        )
+        handler = ListUrlsHandler(manage_urls, get_results)
+
+        update = mocker.AsyncMock()
+        context = mocker.AsyncMock()
+        await handler.handle(update, context)
+
+        text = update.message.reply_text.call_args[0][0]
+        assert "⚠️ *Degraded*" in text

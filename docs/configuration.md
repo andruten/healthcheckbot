@@ -16,6 +16,19 @@ The application is configured through environment variables. In production (Dock
 | `DEFAULT_ALERT_DAYS` | `7`             | No       | Default days before SSL expiry to alert  |
 | `RETENTION_DAYS`     | `7`             | No       | Days of raw health_checks kept before consolidation and purge |
 | `LOG_LEVEL`          | `INFO`          | No       | Python log level (DEBUG, INFO, WARNING)  |
+| `DEGRADATION_ENABLED` | `true`         | No       | Enable early degradation detection       |
+| `DEGRADATION_WINDOW_SIZE` | `20`      | No       | Checks in the rolling window used as baseline |
+| `DEGRADATION_TREND_SIZE` | `5`        | No       | Most recent checks compared against the baseline |
+| `DEGRADATION_MIN_CHECKS` | `10`       | No       | Minimum checks before detection is meaningful |
+| `DEGRADATION_MIN_TTFB_SAMPLES` | `5`   | No       | Minimum healthy TTFB samples to compute a baseline |
+| `TTFB_DEGRADATION_MULTIPLIER` | `1.5`  | No       | TTFB degradation factor vs baseline median |
+| `TTFB_WARN_FLOOR_MS` | `1000`          | No       | Minimum TTFB (ms) to consider degradation |
+| `DEGRADATION_FAILURE_RATIO` | `0.5`   | No       | Max failure ratio treated as intermittent (above = down) |
+| `DEGRADATION_MIN_FAILURES` | `3`      | No       | Minimum failures in window to flag intermittent degradation |
+
+## Degradation detection
+
+The service compares the median TTFB of the most recent checks (`DEGRADATION_TREND_SIZE`) against the historical baseline median of the window (`DEGRADATION_WINDOW_SIZE`). It also flags intermittent failures (not a full outage) when at least `DEGRADATION_MIN_FAILURES` checks fail within the window while the service stays reachable. Alerts (`⚠️ degrading` / `✅ back to normal`) are sent on state transitions only.
 
 ## Telegram Bot Token
 

@@ -1,6 +1,10 @@
 from datetime import UTC, datetime
 
 from healthchecker.domain.models.alert import AlertType
+from healthchecker.domain.services.degradation_service import (
+    DegradationReason,
+    DegradationStatus,
+)
 from healthchecker.domain.services.health_check_service import HealthCheckService
 
 
@@ -79,4 +83,51 @@ class TestHealthCheckService:
 
     def test_build_http_up_alert_escapes_url_name(self):
         alert = HealthCheckService.build_http_up_alert(1, "My*Service", 200, 100.0)
+        assert "*My\\*Service*" in alert.message
+
+    def test_build_degradation_start_ttfb_increase(self):
+        status = DegradationStatus(
+            is_degraded=True,
+            reason=DegradationReason.TTFB_INCREASE,
+            baseline_ttfb_ms=100.0,
+            current_ttfb_ms=1500.0,
+        )
+        alert = HealthCheckService.build_degradation_start_alert(1, "Example", status)
+        assert alert.alert_type == AlertType.DEGRADATION_START
+        assert "TTFB up from 100ms to 1500ms" in alert.message
+
+    def test_build_degradation_start_intermittent_failures(self):
+        status = DegradationStatus(
+            is_degraded=True,
+            reason=DegradationReason.INTERMITTENT_FAILURES,
+            failure_count=3,
+            total_checks=20,
+        )
+        alert = HealthCheckService.build_degradation_start_alert(1, "Example", status)
+        assert "3/20 recent checks failing" in alert.message
+
+    def test_build_degradation_start_escapes_url_name(self):
+        status = DegradationStatus(
+            is_degraded=True,
+            reason=DegradationReason.TTFB_INCREASE,
+            baseline_ttfb_ms=100.0,
+            current_ttfb_ms=1500.0,
+        )
+        alert = HealthCheckService.build_degradation_start_alert(
+            1, "My*Service", status
+        )
+        assert "*My\\*Service* is degrading" in alert.message
+
+    def test_build_degradation_recover_alert(self):
+        status = DegradationStatus(is_degraded=False, current_ttfb_ms=110.0)
+        alert = HealthCheckService.build_degradation_recover_alert(1, "Example", status)
+        assert alert.alert_type == AlertType.DEGRADATION_RECOVER
+        assert "performance back to normal" in alert.message
+        assert "TTFB 110ms" in alert.message
+
+    def test_build_degradation_recover_alert_escapes_url_name(self):
+        status = DegradationStatus(is_degraded=False)
+        alert = HealthCheckService.build_degradation_recover_alert(
+            1, "My*Service", status
+        )
         assert "*My\\*Service*" in alert.message
