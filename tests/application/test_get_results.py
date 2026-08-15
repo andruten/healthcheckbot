@@ -4,6 +4,7 @@ import pytest
 
 from healthchecker.application.use_cases.get_results import GetResultsUseCase
 from healthchecker.domain.models.health_check import HealthCheck
+from healthchecker.infrastructure.config import settings
 
 
 class TestGetResultsUseCase:
@@ -63,3 +64,10 @@ class TestGetResultsUseCase:
         uc = GetResultsUseCase(repo)
         result = await uc.get_latest(999)
         assert result is None
+
+    async def test_get_status_uses_window(self, use_case, mock_repo):
+        status = await use_case.get_status(1)
+        mock_repo.get_by_url_id.assert_awaited_once_with(
+            1, limit=settings.degradation_window_size
+        )
+        assert status.is_degraded is False

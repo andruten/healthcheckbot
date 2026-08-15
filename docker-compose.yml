@@ -35,8 +35,18 @@ services:
       DEFAULT_ALERT_DAYS: "7"
       RETENTION_DAYS: "7"
       LOG_LEVEL: "INFO"
+      DEGRADATION_ENABLED: "true"
+      DEGRADATION_WINDOW_SIZE: "20"
+      DEGRADATION_TREND_SIZE: "5"
+      DEGRADATION_MIN_CHECKS: "10"
+      TTFB_DEGRADATION_MULTIPLIER: "1.5"
+      TTFB_WARN_FLOOR_MS: "1000"
+      DEGRADATION_FAILURE_RATIO: "0.5"
+      DEGRADATION_MIN_FAILURES: "3"
+      DEGRADATION_MIN_TTFB_SAMPLES: "5"
     volumes:
       - ./src:/app
       - ./pyproject.toml:/app/pyproject.toml
+
 volumes:
   mysql_data:

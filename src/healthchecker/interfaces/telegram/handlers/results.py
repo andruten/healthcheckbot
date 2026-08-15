@@ -48,6 +48,9 @@ class ResultsHandler:
                 f"📊 *Results for {markdown_escape(url.name)}* "
                 f"(last {len(checks)} checks)\n"
             )
+            degradation = await self._get_results.get_status(url_id)
+            if degradation.is_degraded:
+                lines.append(self._format_degradation(degradation))
             for c in checks:
                 lines.append(self._format_raw_check(c))
         else:
@@ -70,6 +73,17 @@ class ResultsHandler:
             return
 
         await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+
+    @staticmethod
+    def _format_degradation(status) -> str:
+        if status.reason == "ttfb_increase":
+            detail = (
+                f"TTFB up from {status.baseline_ttfb_ms:.0f}ms to "
+                f"{status.current_ttfb_ms:.0f}ms"
+            )
+        else:
+            detail = f"{status.failure_count}/{status.total_checks} checks failing"
+        return f"⚠️ *Degraded:* {detail}\n"
 
     @staticmethod
     def _format_raw_check(c) -> str:

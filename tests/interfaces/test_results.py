@@ -1,6 +1,10 @@
 from datetime import UTC, datetime
 
 from healthchecker.domain.models.health_check import HealthCheck
+from healthchecker.domain.services.degradation_service import (
+    DegradationReason,
+    DegradationStatus,
+)
 from healthchecker.interfaces.telegram.handlers.results import ResultsHandler
 
 
@@ -24,3 +28,23 @@ class TestResultsHandler:
         result = ResultsHandler._format_raw_check(check)
 
         assert "\\_ssl.c" in result
+
+    def test_format_degradation_ttfb_increase(self):
+        status = DegradationStatus(
+            is_degraded=True,
+            reason=DegradationReason.TTFB_INCREASE,
+            baseline_ttfb_ms=100.0,
+            current_ttfb_ms=1500.0,
+        )
+        result = ResultsHandler._format_degradation(status)
+        assert "TTFB up from 100ms to 1500ms" in result
+
+    def test_format_degradation_intermittent_failures(self):
+        status = DegradationStatus(
+            is_degraded=True,
+            reason=DegradationReason.INTERMITTENT_FAILURES,
+            failure_count=3,
+            total_checks=20,
+        )
+        result = ResultsHandler._format_degradation(status)
+        assert "3/20 checks failing" in result

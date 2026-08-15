@@ -28,6 +28,10 @@ class ListUrlsHandler:
                 if latest
                 else "⏳ Not checked yet"
             )
+            if latest:
+                degradation = await self._get_results.get_status(url.id)
+                if degradation.is_degraded:
+                    status_line += "\n   ⚠️ *Degraded*"
             lines.append(
                 f"{url.id}. *{markdown_escape(url.name)}*\n"
                 f"   `{markdown_escape(url.url)}`\n"

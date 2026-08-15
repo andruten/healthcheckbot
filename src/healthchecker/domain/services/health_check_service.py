@@ -3,6 +3,10 @@ from datetime import UTC, datetime
 from telegram.helpers import escape_markdown
 
 from healthchecker.domain.models.alert import Alert, AlertType
+from healthchecker.domain.services.degradation_service import (
+    DegradationReason,
+    DegradationStatus,
+)
 
 
 class HealthCheckService:
@@ -76,6 +80,53 @@ class HealthCheckService:
             message=(
                 f"✅ *{HealthCheckService._escape(url_name)}* is UP again."
                 + (f" HTTP {status}{ttfb_part}" if status else "")
+            ),
+            is_sent=False,
+            created_at=datetime.now(UTC),
+        )
+
+    @staticmethod
+    def build_degradation_start_alert(
+        url_id: int, url_name: str, status: DegradationStatus
+    ) -> Alert:
+        if status.reason == DegradationReason.TTFB_INCREASE:
+            detail = (
+                f"TTFB up from {status.baseline_ttfb_ms:.0f}ms to "
+                f"{status.current_ttfb_ms:.0f}ms"
+            )
+        elif status.reason == DegradationReason.INTERMITTENT_FAILURES:
+            detail = (
+                f"{status.failure_count}/{status.total_checks} recent checks failing"
+            )
+        else:
+            detail = "performance degraded"
+        return Alert(
+            id=None,
+            url_id=url_id,
+            alert_type=AlertType.DEGRADATION_START,
+            message=(
+                f"⚠️ *{HealthCheckService._escape(url_name)}* is degrading: {detail}"
+            ),
+            is_sent=False,
+            created_at=datetime.now(UTC),
+        )
+
+    @staticmethod
+    def build_degradation_recover_alert(
+        url_id: int, url_name: str, status: DegradationStatus
+    ) -> Alert:
+        ttfb_part = (
+            f" (TTFB {status.current_ttfb_ms:.0f}ms)"
+            if status.current_ttfb_ms is not None
+            else ""
+        )
+        return Alert(
+            id=None,
+            url_id=url_id,
+            alert_type=AlertType.DEGRADATION_RECOVER,
+            message=(
+                f"✅ *{HealthCheckService._escape(url_name)}* "
+                f"performance back to normal{ttfb_part}"
             ),
             is_sent=False,
             created_at=datetime.now(UTC),

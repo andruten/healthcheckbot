@@ -28,6 +28,15 @@ Copy `.env.example` to `.env` and set the variables:
 | `DEFAULT_ALERT_DAYS` | `7` | SSL alert threshold in days |
 | `RETENTION_DAYS` | `7` | Days to retain raw checks before purging |
 | `LOG_LEVEL` | `INFO` | Log level |
+| `DEGRADATION_ENABLED` | `true` | Enable early degradation detection |
+| `DEGRADATION_WINDOW_SIZE` | `20` | Checks in the rolling window used as baseline |
+| `DEGRADATION_TREND_SIZE` | `5` | Most recent checks compared against the baseline |
+| `DEGRADATION_MIN_CHECKS` | `10` | Minimum checks before detection is meaningful |
+| `DEGRADATION_MIN_TTFB_SAMPLES` | `5` | Minimum healthy TTFB samples to compute a baseline |
+| `TTFB_DEGRADATION_MULTIPLIER` | `1.5` | TTFB degradation factor vs baseline median |
+| `TTFB_WARN_FLOOR_MS` | `1000` | Minimum TTFB (ms) to consider degradation |
+| `DEGRADATION_FAILURE_RATIO` | `0.5` | Max failure ratio treated as intermittent (above = down) |
+| `DEGRADATION_MIN_FAILURES` | `3` | Minimum failures in window to flag intermittent degradation |
 
 ## Bot commands
 

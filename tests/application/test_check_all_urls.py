@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -12,6 +12,20 @@ from healthchecker.infrastructure.checker.ssl_checker import SslInfo
 HTTP_OK = HttpCheckResult(status_code=200, ttfb_ms=100.0, error=None)
 HTTP_503 = HttpCheckResult(status_code=503, ttfb_ms=50.0, error=None)
 TIMEOUT = HttpCheckResult(status_code=None, ttfb_ms=None, error="Timeout")
+
+
+def make_check(ttfb, healthy, minutes_ago, url_id=1):
+    return HealthCheck(
+        id=None,
+        url_id=url_id,
+        http_status=200 if healthy else 503,
+        ttfb_ms=ttfb,
+        ssl_days_remaining=200,
+        ssl_expiration_date=datetime(2026, 12, 31, tzinfo=UTC),
+        is_healthy=healthy,
+        error_message=None if healthy else "Error",
+        checked_at=datetime.now(UTC) - timedelta(minutes=minutes_ago),
+    )
 
 
 class TestCheckAllUrlsUseCase:
@@ -50,7 +64,7 @@ class TestCheckAllUrlsUseCase:
         url_repo = mocker.AsyncMock()
         url_repo.get_all_active.return_value = active_urls
         health_repo = mocker.AsyncMock()
-        health_repo.get_latest_by_url_id.return_value = None
+        health_repo.get_by_url_id.return_value = []
         alert_repo = mocker.AsyncMock()
         http_checker = mocker.AsyncMock()
         ssl_checker = mocker.AsyncMock()
@@ -132,17 +146,8 @@ class TestCheckAllUrlsUseCase:
 
     async def test_no_alert_when_already_unhealthy(self, use_case, mocks, ssl_valid):
         _, health_repo, alert_repo, http_checker, ssl_checker = mocks
-        health_repo.get_latest_by_url_id.return_value = HealthCheck(
-            id=99,
-            url_id=1,
-            http_status=503,
-            ttfb_ms=None,
-            ssl_days_remaining=200,
-            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=UTC),
-            is_healthy=False,
-            error_message="Previous error",
-            checked_at=datetime.now(UTC),
-        )
+        previous = make_check(None, False, minutes_ago=1)
+        health_repo.get_by_url_id.return_value = [previous]
         http_checker.check.return_value = HTTP_503
         ssl_checker.check.return_value = ssl_valid
 
@@ -152,19 +157,9 @@ class TestCheckAllUrlsUseCase:
 
     async def test_alert_when_transition_to_unhealthy(self, use_case, mocks, ssl_valid):
         _, health_repo, _alert_repo, http_checker, ssl_checker = mocks
-        previous = HealthCheck(
-            id=98,
-            url_id=1,
-            http_status=200,
-            ttfb_ms=100.0,
-            ssl_days_remaining=200,
-            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=UTC),
-            is_healthy=True,
-            error_message=None,
-            checked_at=datetime.now(UTC),
-        )
-        health_repo.get_latest_by_url_id.side_effect = lambda url_id: (
-            previous if url_id == 1 else None
+        previous = make_check(100.0, True, minutes_ago=1)
+        health_repo.get_by_url_id.side_effect = lambda url_id, limit: (
+            [previous] if url_id == 1 else []
         )
         http_checker.check.side_effect = lambda url: (
             HTTP_503 if "example.com" in url else HTTP_OK
@@ -177,7 +172,7 @@ class TestCheckAllUrlsUseCase:
 
     async def test_no_ssl_alert_when_already_expired(self, use_case, mocks):
         _, health_repo, _, http_checker, ssl_checker = mocks
-        health_repo.get_latest_by_url_id.return_value = HealthCheck(
+        previous = HealthCheck(
             id=97,
             url_id=1,
             http_status=200,
@@ -188,6 +183,7 @@ class TestCheckAllUrlsUseCase:
             error_message=None,
             checked_at=datetime.now(UTC),
         )
+        health_repo.get_by_url_id.return_value = [previous]
         http_checker.check.return_value = HTTP_OK
         ssl_checker.check.return_value = SslInfo(
             expiration_date=datetime(2026, 6, 20, tzinfo=UTC),
@@ -199,7 +195,7 @@ class TestCheckAllUrlsUseCase:
 
     async def test_ssl_alert_when_newly_expired(self, use_case, mocks):
         _, health_repo, _alert_repo, http_checker, ssl_checker = mocks
-        health_repo.get_latest_by_url_id.return_value = HealthCheck(
+        previous = HealthCheck(
             id=96,
             url_id=1,
             http_status=200,
@@ -210,6 +206,7 @@ class TestCheckAllUrlsUseCase:
             error_message=None,
             checked_at=datetime.now(UTC),
         )
+        health_repo.get_by_url_id.return_value = [previous]
         http_checker.check.return_value = HTTP_OK
         ssl_checker.check.return_value = SslInfo(
             expiration_date=datetime(2026, 6, 20, tzinfo=UTC),
@@ -222,19 +219,9 @@ class TestCheckAllUrlsUseCase:
 
     async def test_alert_when_transition_to_healthy(self, use_case, mocks, ssl_valid):
         _, health_repo, _alert_repo, http_checker, ssl_checker = mocks
-        previous = HealthCheck(
-            id=95,
-            url_id=1,
-            http_status=503,
-            ttfb_ms=None,
-            ssl_days_remaining=200,
-            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=UTC),
-            is_healthy=False,
-            error_message="Previous error",
-            checked_at=datetime.now(UTC),
-        )
-        health_repo.get_latest_by_url_id.side_effect = lambda url_id: (
-            previous if url_id == 1 else None
+        previous = make_check(None, False, minutes_ago=1)
+        health_repo.get_by_url_id.side_effect = lambda url_id, limit: (
+            [previous] if url_id == 1 else []
         )
         http_checker.check.return_value = HTTP_OK
         ssl_checker.check.return_value = ssl_valid
@@ -246,20 +233,77 @@ class TestCheckAllUrlsUseCase:
 
     async def test_no_alert_when_already_healthy(self, use_case, mocks, ssl_valid):
         _, health_repo, alert_repo, http_checker, ssl_checker = mocks
-        health_repo.get_latest_by_url_id.return_value = HealthCheck(
-            id=94,
-            url_id=1,
-            http_status=200,
-            ttfb_ms=100.0,
-            ssl_days_remaining=200,
-            ssl_expiration_date=datetime(2026, 12, 31, tzinfo=UTC),
-            is_healthy=True,
-            error_message=None,
-            checked_at=datetime.now(UTC),
-        )
+        previous = make_check(100.0, True, minutes_ago=1)
+        health_repo.get_by_url_id.return_value = [previous]
         http_checker.check.return_value = HTTP_OK
         ssl_checker.check.return_value = ssl_valid
 
         alerts = await use_case.execute()
         assert alerts == []
         alert_repo.save.assert_not_called()
+
+    async def test_degradation_start_on_ttfb_increase(self, use_case, mocks, ssl_valid):
+        _, health_repo, _alert_repo, http_checker, ssl_checker = mocks
+        history = [make_check(100.0, True, minutes_ago=m) for m in range(12, 0, -1)]
+        history[10] = make_check(5000.0, True, minutes_ago=2)
+        history[11] = make_check(5000.0, True, minutes_ago=1)
+        health_repo.get_by_url_id.return_value = history
+        http_checker.check.return_value = HttpCheckResult(
+            status_code=200, ttfb_ms=5000.0, error=None
+        )
+        ssl_checker.check.return_value = ssl_valid
+
+        alerts = await use_case.execute()
+        assert any(a.alert_type == AlertType.DEGRADATION_START for a in alerts)
+        start = next(a for a in alerts if a.alert_type == AlertType.DEGRADATION_START)
+        assert "5000ms" in start.message
+
+    async def test_degradation_recover_alert(self, use_case, mocks, ssl_valid):
+        _, health_repo, _alert_repo, http_checker, ssl_checker = mocks
+        history = [make_check(100.0, True, minutes_ago=m) for m in range(15, 0, -1)]
+        history[10] = make_check(5000.0, True, minutes_ago=5)
+        history[12] = make_check(5000.0, True, minutes_ago=3)
+        history[14] = make_check(5000.0, True, minutes_ago=1)
+        health_repo.get_by_url_id.return_value = history
+        http_checker.check.return_value = HTTP_OK
+        ssl_checker.check.return_value = ssl_valid
+
+        alerts = await use_case.execute()
+        assert any(a.alert_type == AlertType.DEGRADATION_RECOVER for a in alerts)
+
+    async def test_degradation_start_on_intermittent_failures(
+        self, use_case, mocks, ssl_valid
+    ):
+        _, health_repo, _alert_repo, http_checker, ssl_checker = mocks
+        history = [make_check(100.0, True, minutes_ago=m) for m in range(15, 0, -1)]
+        history[12] = make_check(None, False, minutes_ago=3)
+        history[13] = make_check(None, False, minutes_ago=2)
+        history[14] = make_check(None, False, minutes_ago=1)
+        health_repo.get_by_url_id.return_value = history
+        http_checker.check.return_value = HTTP_OK
+        ssl_checker.check.return_value = ssl_valid
+
+        alerts = await use_case.execute()
+        assert any(a.alert_type == AlertType.DEGRADATION_START for a in alerts)
+
+    async def test_no_degradation_alert_when_disabled(self, mocks, ssl_valid):
+        url_repo, health_repo, alert_repo, http_checker, ssl_checker = mocks
+        history = [make_check(100.0, True, minutes_ago=m) for m in range(12, 0, -1)]
+        history[10] = make_check(5000.0, True, minutes_ago=2)
+        history[11] = make_check(5000.0, True, minutes_ago=1)
+        health_repo.get_by_url_id.return_value = history
+        http_checker.check.return_value = HttpCheckResult(
+            status_code=200, ttfb_ms=5000.0, error=None
+        )
+        ssl_checker.check.return_value = ssl_valid
+        use_case = CheckAllUrlsUseCase(
+            url_repo=url_repo,
+            health_check_repo=health_repo,
+            alert_repo=alert_repo,
+            http_checker=http_checker,
+            ssl_checker=ssl_checker,
+            degradation_enabled=False,
+        )
+
+        alerts = await use_case.execute()
+        assert all(a.alert_type != AlertType.DEGRADATION_START for a in alerts)
