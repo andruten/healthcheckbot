@@ -55,3 +55,28 @@ class TestHealthCheckService:
         )
         assert alert.alert_type == AlertType.HTTP_DOWN
         assert "Connection refused" in alert.message
+
+    def test_build_http_down_alert_escapes_error_markdown(self):
+        error = (
+            "[SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1082)"
+        )
+        alert = HealthCheckService.build_http_down_alert(1, "Example", None, error)
+        assert "\\[SSL: TLSV1\\_ALERT\\_INTERNAL\\_ERROR]" in alert.message
+        assert "\\_ssl.c:1082" in alert.message
+
+    def test_build_http_down_alert_escapes_url_name(self):
+        alert = HealthCheckService.build_http_down_alert(1, "My*Service", 503, None)
+        assert "*My\\*Service* is DOWN." in alert.message
+
+    def test_build_ssl_alert_escapes_url_name(self):
+        alert = HealthCheckService.build_ssl_alert(
+            url_id=1,
+            url_name="My*Service",
+            days_remaining=5,
+            threshold_days=30,
+        )
+        assert "*My\\*Service*" in alert.message
+
+    def test_build_http_up_alert_escapes_url_name(self):
+        alert = HealthCheckService.build_http_up_alert(1, "My*Service", 200, 100.0)
+        assert "*My\\*Service*" in alert.message
