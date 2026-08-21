@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 import pytest_asyncio
@@ -140,22 +140,23 @@ class TestTortoiseHealthCheckRepository:
 
     async def test_get_dates_needing_consolidation(self, hc_repo, sample_url):
         now = datetime.now(UTC)
-        await hc_repo.save(
-            HealthCheck(
-                id=None,
-                url_id=sample_url.id,
-                http_status=200,
-                ttfb_ms=10.0,
-                ssl_expiration_date=now,
-                ssl_days_remaining=50,
-                is_healthy=True,
-                error_message=None,
-                checked_at=now,
+        yesterday = now - timedelta(days=1)
+        for checked_at in (yesterday, now):
+            await hc_repo.save(
+                HealthCheck(
+                    id=None,
+                    url_id=sample_url.id,
+                    http_status=200,
+                    ttfb_ms=10.0,
+                    ssl_expiration_date=now,
+                    ssl_days_remaining=50,
+                    is_healthy=True,
+                    error_message=None,
+                    checked_at=checked_at,
+                )
             )
-        )
-        pending = await hc_repo.get_dates_needing_consolidation(date(2099, 12, 31))
-        filtered = [(uid, d) for uid, d in pending if uid == sample_url.id]
-        assert len(filtered) >= 1
+        pending = await hc_repo.get_dates_needing_consolidation(now.date())
+        assert pending == [(sample_url.id, yesterday.date())]
 
 
 class TestTortoiseAlertRepository:

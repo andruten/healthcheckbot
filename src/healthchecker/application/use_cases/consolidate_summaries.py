@@ -1,5 +1,5 @@
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 
 from healthchecker.domain.models.daily_summary import DailySummary
 from healthchecker.domain.repositories.daily_summary_repository import (
@@ -24,7 +24,17 @@ class ConsolidateDailySummariesUseCase:
         self._retention_days = retention_days
 
     async def execute(self) -> int:
-        cutoff = datetime.now(UTC).date()
+        today = datetime.now(UTC).date()
+        consolidated_count = await self._consolidate(today)
+        purged = await self._purge(today)
+        logger.info(
+            "Consolidated %d days, purged %d old health checks",
+            consolidated_count,
+            purged,
+        )
+        return consolidated_count
+
+    async def _consolidate(self, cutoff: date) -> int:
         pending = await self._health_check_repo.get_dates_needing_consolidation(cutoff)
         if not pending:
             logger.info("No data to consolidate")
@@ -78,18 +88,9 @@ class ConsolidateDailySummariesUseCase:
                     check_date,
                 )
 
-        cutoff.replace(day=1)  # keep current month at minimum
-        if self._retention_days == 0:
-            purged = await self._health_check_repo.purge_older_than(cutoff)
-        else:
-            from datetime import timedelta
-
-            purge_date = cutoff - timedelta(days=self._retention_days)
-            purged = await self._health_check_repo.purge_older_than(purge_date)
-
-        logger.info(
-            "Consolidated %d days, purged %d old health checks",
-            consolidated_count,
-            purged,
-        )
         return consolidated_count
+
+    async def _purge(self, today: date) -> int:
+        retention = self._retention_days if self._retention_days > 0 else 1
+        purge_date = today - timedelta(days=retention)
+        return await self._health_check_repo.purge_older_than(purge_date)

@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
@@ -106,6 +106,29 @@ class TestConsolidateDailySummariesUseCase:
         uc = ConsolidateDailySummariesUseCase(health_repo, summary_repo)
 
         count = await uc.execute()
+
         assert count == 0
         health_repo.get_raw_for_date.assert_not_called()
         summary_repo.save.assert_not_called()
+        health_repo.purge_older_than.assert_awaited_once()
+
+    async def test_purge_uses_retention_window(self, use_case, mocks):
+        health_repo, _ = mocks
+
+        await use_case.execute()
+
+        expected = datetime.now(UTC).date() - timedelta(days=7)
+        health_repo.purge_older_than.assert_awaited_once_with(expected)
+
+    async def test_purge_with_zero_retention_keeps_today(self, mocks):
+        health_repo, summary_repo = mocks
+        uc = ConsolidateDailySummariesUseCase(
+            health_repo,
+            summary_repo,
+            retention_days=0,
+        )
+
+        await uc.execute()
+
+        expected = datetime.now(UTC).date() - timedelta(days=1)
+        health_repo.purge_older_than.assert_awaited_once_with(expected)

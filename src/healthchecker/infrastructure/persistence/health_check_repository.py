@@ -51,18 +51,15 @@ class TortoiseHealthCheckRepository(HealthCheckRepositoryInterface):
     async def get_dates_needing_consolidation(
         self, cutoff_date: date
     ) -> list[tuple[int, date]]:
-        end = datetime(
+        start = datetime(
             cutoff_date.year,
             cutoff_date.month,
             cutoff_date.day,
-            23,
-            59,
-            59,
             tzinfo=UTC,
         )
         raw: set[tuple[int, date]] = set()
         rows = await HealthCheckModel.filter(
-            checked_at__lte=end,
+            checked_at__lt=start,
         ).values("url_id", "checked_at")
         for r in rows:
             raw.add((r["url_id"], r["checked_at"].date() if r["checked_at"] else None))
