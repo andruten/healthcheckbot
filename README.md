@@ -68,6 +68,6 @@ PYTHONPATH=src python -m pytest tests/
 ## Migrations
 
 ```bash
-docker compose exec app aerich migrate     # Generate migration
-docker compose exec app aerich upgrade     # Apply migration
+docker compose exec healthcheckbot aerich migrate     # Generate migration
+docker compose exec healthcheckbot aerich upgrade     # Apply migration
 ```
