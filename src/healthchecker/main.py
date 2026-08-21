@@ -81,6 +81,7 @@ async def main():
     finally:
         await scheduler.stop()
         await bot.stop()
+        await http_checker.aclose()
         await close_database()
 
 
