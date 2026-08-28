@@ -65,6 +65,21 @@ class TestHttpHealthChecker:
         assert result.error is None
         assert route.call_count == 2
 
+    async def test_exhausts_max_attempts_on_persistent_transport_error(
+        self, respx_mock
+    ):
+        checker = HttpHealthChecker(timeout=5.0, max_attempts=2, retry_delay=0)
+        route = respx_mock.get("https://example.com").mock(
+            side_effect=httpx.ConnectError("boom")
+        )
+
+        result = await checker.check("https://example.com")
+
+        assert result.status_code is None
+        assert result.ttfb_ms is None
+        assert result.error == "boom"
+        assert route.call_count == 2
+
     async def test_unexpected_error(self, checker, respx_mock):
         respx_mock.get("https://example.com").mock(side_effect=RuntimeError("weird"))
         result = await checker.check("https://example.com")

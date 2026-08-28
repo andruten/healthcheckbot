@@ -18,17 +18,27 @@ class HttpHealthChecker:
     def __init__(
         self,
         timeout: float = 10.0,
-        retry_attempts: int = 3,
-        retry_delay: float = 2,
+        max_attempts: int = 4,
+        retry_delay: float = 2.0,
+        max_connections: int = 100,
+        max_keepalive_connections: int = 20,
     ):
         self._timeout = timeout
-        self._retry_attempts = retry_attempts
+        self._max_attempts = max_attempts
         self._retry_delay = retry_delay
+        self._limits = httpx.Limits(
+            max_connections=max_connections,
+            max_keepalive_connections=max_keepalive_connections,
+        )
         self._client: httpx.AsyncClient | None = None
 
     def _get_client(self) -> httpx.AsyncClient:
         if self._client is None:
-            self._client = httpx.AsyncClient(timeout=self._timeout)
+            self._client = httpx.AsyncClient(
+                timeout=self._timeout,
+                follow_redirects=True,
+                limits=self._limits,
+            )
         return self._client
 
     async def aclose(self) -> None:
@@ -38,12 +48,14 @@ class HttpHealthChecker:
 
     async def check(self, url: str) -> HttpCheckResult:
         client = self._get_client()
-        for attempt in range(self._retry_attempts + 1):
+        error: str | None = None
+        for attempt in range(self._max_attempts):
             try:
-                response = await client.get(url, follow_redirects=True)
-                ttfb = response.elapsed.total_seconds() * 1000
+                response = await client.get(url)
                 return HttpCheckResult(
-                    status_code=response.status_code, ttfb_ms=ttfb, error=None
+                    status_code=response.status_code,
+                    ttfb_ms=response.elapsed.total_seconds() * 1000,
+                    error=None,
                 )
             except httpx.TimeoutException:
                 error = "Timeout"
@@ -58,9 +70,7 @@ class HttpHealthChecker:
                 logger.exception("Unexpected error checking %s", url)
                 return HttpCheckResult(status_code=None, ttfb_ms=None, error=str(e))
 
-            if attempt == self._retry_attempts:
-                return HttpCheckResult(status_code=None, ttfb_ms=None, error=error)
+            if attempt < self._max_attempts - 1:
+                await asyncio.sleep(self._retry_delay)
 
-            await asyncio.sleep(self._retry_delay)
-
-        raise RuntimeError("HTTP health check completed without a result")
+        return HttpCheckResult(status_code=None, ttfb_ms=None, error=error)
