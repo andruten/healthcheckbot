@@ -10,7 +10,7 @@ from telegram.ext import (
 )
 
 from healthchecker.application.use_cases.check_all_urls import CheckAllUrlsUseCase
-from healthchecker.application.use_cases.get_results import GetResultsUseCase
+from healthchecker.application.use_cases.get_stats import GetStatsUseCase
 from healthchecker.application.use_cases.manage_urls import ManageUrlsUseCase
 from healthchecker.domain.repositories.alert_repository import AlertRepository
 from healthchecker.domain.repositories.daily_summary_repository import (
@@ -21,7 +21,7 @@ from healthchecker.interfaces.telegram.handlers.add_url import AddUrlHandler
 from healthchecker.interfaces.telegram.handlers.check_now import CheckNowHandler
 from healthchecker.interfaces.telegram.handlers.delete_url import DeleteUrlHandler
 from healthchecker.interfaces.telegram.handlers.list_urls import ListUrlsHandler
-from healthchecker.interfaces.telegram.handlers.results import ResultsHandler
+from healthchecker.interfaces.telegram.handlers.stats import StatsHandler
 
 logger = logging.getLogger(__name__)
 
@@ -30,13 +30,13 @@ class TelegramBot:
     def __init__(
         self,
         manage_urls: ManageUrlsUseCase,
-        get_results: GetResultsUseCase,
+        get_stats: GetStatsUseCase,
         check_all_urls: CheckAllUrlsUseCase,
         summary_repo: DailySummaryRepository | None = None,
         alert_repo: AlertRepository | None = None,
     ):
         self._manage_urls = manage_urls
-        self._get_results = get_results
+        self._get_stats = get_stats
         self._check_all_urls = check_all_urls
         self._summary_repo = summary_repo
         self._alert_repo = alert_repo
@@ -61,7 +61,7 @@ class TelegramBot:
 
         self._app.add_handler(
             CommandHandler(
-                "list", ListUrlsHandler(self._manage_urls, self._get_results).handle
+                "list", ListUrlsHandler(self._manage_urls, self._get_stats).handle
             )
         )
         self._app.add_handler(
@@ -77,10 +77,8 @@ class TelegramBot:
         )
         self._app.add_handler(
             CommandHandler(
-                "results",
-                ResultsHandler(
-                    self._get_results, self._manage_urls, self._summary_repo
-                ).handle,
+                "stats",
+                StatsHandler(self._get_stats, self._manage_urls).handle,
             )
         )
 
@@ -134,6 +132,6 @@ class TelegramBot:
             "/list — Show all monitored URLs\n"
             "/delete `<id>` — Remove a URL\n"
             "/check `[id]` — Run health check now\n"
-            "/results `<id>` `[--limit N]` — Show check history\n"
+            "/stats `<id>` `[--days N]` — Show stats summary (default 7 days)\n"
         )
         await update.message.reply_text(text, parse_mode="Markdown")

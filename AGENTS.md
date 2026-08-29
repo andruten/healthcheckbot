@@ -19,11 +19,11 @@ src/healthchecker/
 ├── interfaces/           # Telegram bot, asyncio scheduler
 │   ├── telegram/
 │   │   ├── bot.py
-│   │   └── handlers/     # /start, /add, /list, /delete, /check, /results
+│   │   └── handlers/     # /start, /add, /list, /delete, /check, /stats
 │   └── scheduler.py
 ├── application/          # Use cases
 │   ├── manage_urls.py
-│   ├── get_results.py
+│   ├── get_stats.py
 │   ├── check_all_urls.py
 │   └── consolidate_summaries.py
 ├── domain/               # Models, services, repository interfaces
@@ -48,7 +48,7 @@ PYTHONPATH=src python -m pytest tests/     # Run tests locally
 
 ## Tests
 
-64 tests (53 unit + 11 integration with SQLite in-memory).
+64 tests (54 unit + 11 integration with SQLite in-memory).
 
 ```
 tests/

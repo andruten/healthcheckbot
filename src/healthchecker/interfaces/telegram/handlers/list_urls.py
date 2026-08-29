@@ -1,15 +1,15 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from healthchecker.application.use_cases.get_results import GetResultsUseCase
+from healthchecker.application.use_cases.get_stats import GetStatsUseCase
 from healthchecker.application.use_cases.manage_urls import ManageUrlsUseCase
 from healthchecker.interfaces.telegram.markdown import markdown_escape
 
 
 class ListUrlsHandler:
-    def __init__(self, manage_urls: ManageUrlsUseCase, get_results: GetResultsUseCase):
+    def __init__(self, manage_urls: ManageUrlsUseCase, get_stats: GetStatsUseCase):
         self._manage_urls = manage_urls
-        self._get_results = get_results
+        self._get_stats = get_stats
 
     async def handle(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         urls = await self._manage_urls.list_all()
@@ -22,14 +22,14 @@ class ListUrlsHandler:
 
         lines = [f"📋 *Monitored URLs ({len(urls)}):*\n"]
         for url in urls:
-            latest = await self._get_results.get_latest(url.id)
+            latest = await self._get_stats.get_latest(url.id)
             status_line = (
                 self._format_status(latest, url.alert_before_days)
                 if latest
                 else "⏳ Not checked yet"
             )
             if latest:
-                degradation = await self._get_results.get_status(url.id)
+                degradation = await self._get_stats.get_status(url.id)
                 if degradation.is_degraded:
                     status_line += "\n   ⚠️ *Degraded*"
             lines.append(

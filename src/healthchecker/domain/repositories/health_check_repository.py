@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from datetime import date
+from datetime import date, datetime
 
 from healthchecker.domain.models.health_check import HealthCheck
 
@@ -15,6 +15,9 @@ class HealthCheckRepository(ABC):
 
     @abstractmethod
     async def get_latest_by_url_id(self, url_id: int) -> HealthCheck | None: ...
+
+    @abstractmethod
+    async def get_since(self, url_id: int, since: datetime) -> list[HealthCheck]: ...
 
     @abstractmethod
     async def get_dates_needing_consolidation(
