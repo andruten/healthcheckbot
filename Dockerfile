@@ -12,7 +12,7 @@ COPY src/ src/
 RUN pip install --no-cache-dir .
 
 
-FROM python:3.14-slim
+FROM python:3.14-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
@@ -35,3 +35,25 @@ ENV PYTHONPATH=/app
 USER healthcheckbot
 
 CMD ["python", "-m", "healthchecker.main"]
+
+
+FROM python:3.14-slim AS dev
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+WORKDIR /app
+
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+COPY --from=builder $VIRTUAL_ENV $VIRTUAL_ENV
+
+COPY pyproject.toml .
+COPY ./src/ src/
+RUN pip install --no-cache-dir '.[dev]'
+
+COPY ./tests/ /app/tests/
+
+ENV PYTHONPATH=/app
+
+CMD ["bash"]

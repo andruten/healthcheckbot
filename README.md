@@ -52,22 +52,50 @@ Copy `.env.example` to `.env` and set the variables:
 ## Quick start
 
 ```bash
-docker compose up --build
+make up_build
 ```
 
 This starts MySQL and the application. The bot starts receiving commands and running periodic checks.
 
+## Makefile
+
+All common tasks are automated via `make` and run through `docker compose`:
+
+| Target | Description |
+|---|---|
+| `make up_build` | Start everything detached (build images first) |
+| `make up` | Start detached (no rebuild) |
+| `make run` | Start attached (with build) |
+| `make down` | Stop everything |
+| `make restart` | Restart the app |
+| `make build` | Build production images |
+| `make logs` | Follow app logs |
+| `make ps` | List running services |
+| `make bash` | Shell into the dev container |
+| `make migrate` | Generate Aerich migration (needs app running) |
+| `make upgrade` | Apply Aerich migration (needs app running) |
+| `make mysql` | Open a MySQL client into the db container |
+| `make test` | Run tests in the dev container |
+| `make lint` | `ruff check --fix` in the dev container |
+| `make lint_check` | `ruff check` (no fixes) |
+| `make format` | `ruff format` |
+| `make format_check` | `ruff format --check` |
+
+Targets that need `.env` create it from `.env.example` automatically.
+
 ## Local development
 
+No local Python required: tests, lint and format run in the `dev` compose service (profile `dev`), which builds the `dev` Docker stage with `.[dev]` installed and mounts `src/`, `tests/` and `pyproject.toml` from the host.
+
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-PYTHONPATH=src python -m pytest tests/
+make test
+make lint
+make bash
 ```
 
 ## Migrations
 
 ```bash
-docker compose exec healthcheckbot aerich migrate     # Generate migration
-docker compose exec healthcheckbot aerich upgrade     # Apply migration
+make migrate     # Generate migration (needs app running)
+make upgrade     # Apply migration (needs app running)
 ```

@@ -19,7 +19,9 @@ services:
       retries: 5
 
   healthcheckbot:
-    build: .
+    build:
+      context: .
+      target: runtime
     depends_on:
       db:
         condition: service_healthy
@@ -47,6 +49,20 @@ services:
     volumes:
       - ./src:/app
       - ./pyproject.toml:/app/pyproject.toml
+
+  dev:
+    build:
+      context: .
+      target: dev
+    profiles: ["dev"]
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      ALLOWED_CHAT_IDS: ${ALLOWED_CHAT_IDS}
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+      - ./pyproject.toml:/app/pyproject.toml
+    command: ["bash"]
 
 volumes:
   mysql_data:
