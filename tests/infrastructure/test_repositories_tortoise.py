@@ -100,6 +100,28 @@ class TestTortoiseHealthCheckRepository:
         assert latest is not None
         assert latest.http_status == 200
 
+    async def test_get_since_filters_and_orders(self, hc_repo, sample_url):
+        now = datetime.now(UTC)
+        since = now - timedelta(days=7)
+        for i, offset in enumerate([-10, -5, -1, 0, 1]):
+            await hc_repo.save(
+                HealthCheck(
+                    id=None,
+                    url_id=sample_url.id,
+                    http_status=200,
+                    ttfb_ms=100.0 + i,
+                    ssl_expiration_date=None,
+                    ssl_days_remaining=None,
+                    is_healthy=True,
+                    error_message=None,
+                    checked_at=now + timedelta(days=offset),
+                )
+            )
+
+        result = await hc_repo.get_since(sample_url.id, since=since)
+        offsets = [(c.checked_at - now).days for c in result]
+        assert offsets == [-5, -1, 0, 1]
+
     async def test_get_by_url_id_with_limit(self, hc_repo, sample_url):
         now = datetime.now(UTC)
         for i in range(5):

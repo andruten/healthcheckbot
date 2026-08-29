@@ -48,6 +48,12 @@ class TortoiseHealthCheckRepository(HealthCheckRepositoryInterface):
         )
         return self._to_domain(row) if row else None
 
+    async def get_since(self, url_id: int, since: datetime) -> list[HealthCheck]:
+        rows = await HealthCheckModel.filter(
+            url_id=url_id, checked_at__gte=since
+        ).order_by("checked_at")
+        return [self._to_domain(r) for r in rows]
+
     async def get_dates_needing_consolidation(
         self, cutoff_date: date
     ) -> list[tuple[int, date]]:

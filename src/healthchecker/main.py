@@ -5,7 +5,7 @@ from healthchecker.application.use_cases.check_all_urls import CheckAllUrlsUseCa
 from healthchecker.application.use_cases.consolidate_summaries import (
     ConsolidateDailySummariesUseCase,
 )
-from healthchecker.application.use_cases.get_results import GetResultsUseCase
+from healthchecker.application.use_cases.get_stats import GetStatsUseCase
 from healthchecker.application.use_cases.manage_urls import ManageUrlsUseCase
 from healthchecker.infrastructure.checker.http_checker import HttpHealthChecker
 from healthchecker.infrastructure.checker.ssl_checker import SslChecker
@@ -52,7 +52,7 @@ async def main():
     ssl_checker = SslChecker()
 
     manage_urls = ManageUrlsUseCase(url_repo)
-    get_results = GetResultsUseCase(health_check_repo)
+    get_stats = GetStatsUseCase(health_check_repo)
     check_all_urls = CheckAllUrlsUseCase(
         url_repo,
         health_check_repo,
@@ -66,9 +66,7 @@ async def main():
         settings.retention_days,
     )
 
-    bot = TelegramBot(
-        manage_urls, get_results, check_all_urls, summary_repo, alert_repo
-    )
+    bot = TelegramBot(manage_urls, get_stats, check_all_urls, summary_repo, alert_repo)
     scheduler = Scheduler(check_all_urls, consolidate, alert_repo, bot.send_alert)
 
     try:

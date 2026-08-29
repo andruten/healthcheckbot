@@ -16,6 +16,10 @@ class Settings:
         self.check_interval_sec: int = int(os.getenv("CHECK_INTERVAL_SEC", "60"))
         self.default_alert_days: int = int(os.getenv("DEFAULT_ALERT_DAYS", "7"))
         self.retention_days: int = int(os.getenv("RETENTION_DAYS", "7"))
+        self.stats_default_days: int = int(os.getenv("STATS_DEFAULT_DAYS", "7"))
+        self.stats_max_days: int = min(
+            int(os.getenv("STATS_MAX_DAYS", "7")), self.retention_days
+        )
         self.log_level: str = os.getenv("LOG_LEVEL", "INFO")
         self.degradation_enabled: bool = self._parse_bool(
             os.getenv("DEGRADATION_ENABLED", "true")
