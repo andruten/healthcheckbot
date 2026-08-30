@@ -1,3 +1,4 @@
+import asyncio
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -307,3 +308,56 @@ class TestCheckAllUrlsUseCase:
 
         alerts = await use_case.execute()
         assert all(a.alert_type != AlertType.DEGRADATION_START for a in alerts)
+
+    async def test_concurrent_execute_does_not_duplicate_alerts(
+        self, use_case, mocks, ssl_valid
+    ):
+        _, health_repo, alert_repo, http_checker, ssl_checker = mocks
+        http_checker.check.return_value = HTTP_503
+        ssl_checker.check.return_value = ssl_valid
+        saved: dict[int, list[HealthCheck]] = {}
+
+        async def fake_save(check):
+            saved.setdefault(check.url_id, []).append(check)
+
+        def fake_history(url_id, limit=None):
+            return list(reversed(saved.get(url_id, [])))
+
+        health_repo.save.side_effect = fake_save
+        health_repo.get_by_url_id.side_effect = fake_history
+
+        first, second = await asyncio.gather(use_case.execute(), use_case.execute())
+
+        assert len(first) == 2
+        assert all(a.alert_type == AlertType.HTTP_DOWN for a in first)
+        assert second == []
+        assert alert_repo.save.await_count == 2
+
+    async def test_execute_waits_for_in_flight_run(self, use_case, mocks, ssl_valid):
+        url_repo, _, _, http_checker, ssl_checker = mocks
+        http_checker.check.return_value = HTTP_OK
+        ssl_checker.check.return_value = ssl_valid
+        first_started = asyncio.Event()
+        release_first = asyncio.Event()
+
+        async def blocking_check(url):
+            if "example.com" in url:
+                first_started.set()
+                await release_first.wait()
+            return HTTP_OK
+
+        http_checker.check.side_effect = blocking_check
+
+        first = asyncio.create_task(use_case.execute())
+        await first_started.wait()
+
+        second = asyncio.create_task(use_case.execute())
+        await asyncio.sleep(0.01)
+        url_repo.get_all_active.assert_awaited_once()
+
+        release_first.set()
+        first_alerts, second_alerts = await asyncio.gather(first, second)
+
+        assert first_alerts == []
+        assert second_alerts == []
+        assert url_repo.get_all_active.await_count == 2
