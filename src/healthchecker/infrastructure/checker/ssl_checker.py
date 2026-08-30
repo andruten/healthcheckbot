@@ -23,8 +23,11 @@ class SslChecker:
             _reader, writer = await self._open_tls_connection(host, ctx)
 
             cert = writer.get_extra_info("ssl_object").getpeercert()
-            writer.close()
-            await writer.wait_closed()
+            try:
+                writer.close()
+                await writer.wait_closed()
+            except ssl.SSLError, OSError:
+                pass
 
             if not cert:
                 return None

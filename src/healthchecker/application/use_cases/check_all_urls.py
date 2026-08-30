@@ -2,6 +2,8 @@ import asyncio
 import logging
 from datetime import UTC, datetime
 
+from tortoise.exceptions import IntegrityError
+
 from healthchecker.domain.models.alert import Alert
 from healthchecker.domain.models.health_check import HealthCheck
 from healthchecker.domain.models.url import Url
@@ -160,6 +162,12 @@ class CheckAllUrlsUseCase:
 
             return alerts
 
+        except IntegrityError:
+            logger.warning(
+                "URL %s was deleted while its check was in flight, discarding result",
+                url.url,
+            )
+            return []
         except Exception:
             logger.exception("Error checking URL %s", url.url)
             return []

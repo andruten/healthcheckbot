@@ -14,6 +14,8 @@ class TestSettings:
         assert s.db_password == "healthchecker"
         assert s.db_name == "healthchecker"
         assert s.check_interval_sec == 60
+        assert s.check_max_attempts == 2
+        assert s.check_retry_delay == 2.0
         assert s.default_alert_days == 7
         assert s.log_level == "INFO"
         assert s.degradation_enabled is True
@@ -34,6 +36,8 @@ class TestSettings:
         monkeypatch.setenv("DB_PASSWORD", "secret")
         monkeypatch.setenv("DB_NAME", "mydb")
         monkeypatch.setenv("CHECK_INTERVAL_SEC", "120")
+        monkeypatch.setenv("CHECK_MAX_ATTEMPTS", "3")
+        monkeypatch.setenv("CHECK_RETRY_DELAY", "5.0")
         monkeypatch.setenv("DEFAULT_ALERT_DAYS", "14")
         monkeypatch.setenv("LOG_LEVEL", "DEBUG")
         monkeypatch.setenv("DEGRADATION_ENABLED", "false")
@@ -54,6 +58,8 @@ class TestSettings:
         assert s.db_password == "secret"
         assert s.db_name == "mydb"
         assert s.check_interval_sec == 120
+        assert s.check_max_attempts == 3
+        assert s.check_retry_delay == 5.0
         assert s.default_alert_days == 14
         assert s.log_level == "DEBUG"
         assert s.degradation_enabled is False

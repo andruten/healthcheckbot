@@ -80,6 +80,18 @@ class TestHttpHealthChecker:
         assert result.error == "boom"
         assert route.call_count == 2
 
+    async def test_single_attempt_when_max_attempts_is_one(self, respx_mock):
+        checker = HttpHealthChecker(timeout=5.0, max_attempts=1, retry_delay=0)
+        route = respx_mock.get("https://example.com").mock(
+            side_effect=httpx.ConnectError("boom")
+        )
+
+        result = await checker.check("https://example.com")
+
+        assert result.status_code is None
+        assert result.error == "boom"
+        assert route.call_count == 1
+
     async def test_unexpected_error(self, checker, respx_mock):
         respx_mock.get("https://example.com").mock(side_effect=RuntimeError("weird"))
         result = await checker.check("https://example.com")
