@@ -35,6 +35,7 @@ class CheckAllUrlsUseCase:
         self._alert_repo = alert_repo
         self._http_checker = http_checker
         self._ssl_checker = ssl_checker
+        self._lock = asyncio.Lock()
         self._degradation_enabled = (
             settings.degradation_enabled
             if degradation_enabled is None
@@ -52,10 +53,11 @@ class CheckAllUrlsUseCase:
         )
 
     async def execute(self) -> list[Alert]:
-        urls = await self._url_repo.get_all_active()
-        logger.debug("Running health checks for %d URLs", len(urls))
-        results = await asyncio.gather(*[self._check_one(url) for url in urls])
-        return [alert for batch in results for alert in batch]
+        async with self._lock:
+            urls = await self._url_repo.get_all_active()
+            logger.debug("Running health checks for %d URLs", len(urls))
+            results = await asyncio.gather(*[self._check_one(url) for url in urls])
+            return [alert for batch in results for alert in batch]
 
     async def _check_one(self, url: Url) -> list[Alert]:
         try:
