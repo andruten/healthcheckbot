@@ -1,3 +1,5 @@
+import asyncio
+
 from telegram import Update
 from telegram.ext import ContextTypes
 
@@ -20,18 +22,23 @@ class ListUrlsHandler:
             )
             return
 
+        url_ids = [url.id for url in urls]
+        latest_map, status_map = await asyncio.gather(
+            self._get_stats.get_latest_map(url_ids),
+            self._get_stats.get_status_map(url_ids),
+        )
+
         lines = [f"📋 *Monitored URLs ({len(urls)}):*\n"]
         for url in urls:
-            latest = await self._get_stats.get_latest(url.id)
+            latest = latest_map.get(url.id)
             status_line = (
                 self._format_status(latest, url.alert_before_days)
                 if latest
                 else "⏳ Not checked yet"
             )
-            if latest:
-                degradation = await self._get_stats.get_status(url.id)
-                if degradation.is_degraded:
-                    status_line += "\n   ⚠️ *Degraded*"
+            status = status_map.get(url.id)
+            if latest and status and status.is_degraded:
+                status_line += "\n   ⚠️ *Degraded*"
             lines.append(
                 f"{url.id}. *{markdown_escape(url.name)}*\n"
                 f"   `{markdown_escape(url.url)}`\n"

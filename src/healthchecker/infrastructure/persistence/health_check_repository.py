@@ -1,4 +1,7 @@
+from collections.abc import Sequence
 from datetime import UTC, date, datetime
+
+from tortoise.expressions import RawSQL
 
 from healthchecker.domain.models.health_check import HealthCheck
 from healthchecker.domain.repositories.health_check_repository import (
@@ -47,6 +50,29 @@ class TortoiseHealthCheckRepository(HealthCheckRepositoryInterface):
             await HealthCheckModel.filter(url_id=url_id).order_by("-checked_at").first()
         )
         return self._to_domain(row) if row else None
+
+    async def get_latest_by_url_ids(
+        self, url_ids: Sequence[int]
+    ) -> dict[int, HealthCheck]:
+        if not url_ids:
+            return {}
+        rows = await HealthCheckModel.filter(
+            id__in=self._row_number_subquery(url_ids, 1)
+        )
+        return {row.url_id: self._to_domain(row) for row in rows}
+
+    async def get_recent_by_url_ids(
+        self, url_ids: Sequence[int], limit: int = 10
+    ) -> dict[int, list[HealthCheck]]:
+        if not url_ids:
+            return {}
+        rows = await HealthCheckModel.filter(
+            id__in=self._row_number_subquery(url_ids, limit)
+        ).order_by("checked_at")
+        grouped: dict[int, list[HealthCheck]] = {}
+        for row in rows:
+            grouped.setdefault(row.url_id, []).append(self._to_domain(row))
+        return grouped
 
     async def get_since(self, url_id: int, since: datetime) -> list[HealthCheck]:
         rows = await HealthCheckModel.filter(
@@ -117,6 +143,18 @@ class TortoiseHealthCheckRepository(HealthCheckRepositoryInterface):
         )
         deleted = await HealthCheckModel.filter(checked_at__lte=end).delete()
         return deleted
+
+    @staticmethod
+    def _row_number_subquery(url_ids: Sequence[int], limit: int) -> RawSQL:
+        ids = ", ".join(str(int(url_id)) for url_id in url_ids)
+        table = HealthCheckModel._meta.db_table
+        return RawSQL(
+            f"(SELECT id FROM ("
+            f"SELECT id, ROW_NUMBER() OVER "
+            f"(PARTITION BY url_id ORDER BY checked_at DESC, id DESC) AS rn "
+            f"FROM {table} WHERE url_id IN ({ids})"
+            f") ranked WHERE ranked.rn <= {int(limit)})"
+        )
 
     @staticmethod
     def _to_domain(row: HealthCheckModel) -> HealthCheck:

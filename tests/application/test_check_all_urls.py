@@ -1,7 +1,9 @@
 import asyncio
+import logging
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from tortoise.exceptions import IntegrityError
 
 from healthchecker.application.use_cases.check_all_urls import CheckAllUrlsUseCase
 from healthchecker.domain.models.alert import AlertType
@@ -113,6 +115,32 @@ class TestCheckAllUrlsUseCase:
         alerts = await use_case.execute()
         assert len(alerts) == 1
         assert alerts[0].alert_type == AlertType.HTTP_DOWN
+
+    async def test_url_deleted_mid_check_logs_warning_and_continues(
+        self, use_case, mocks, ssl_valid, caplog
+    ):
+        _, health_repo, alert_repo, http_checker, ssl_checker = mocks
+
+        async def save_fail_for_deleted(check):
+            if check.url_id == 1:
+                raise IntegrityError("1452 FK constraint fails")
+            return check
+
+        health_repo.save.side_effect = save_fail_for_deleted
+        http_checker.check.side_effect = lambda url: (
+            HTTP_OK if "example.com" in url else HTTP_503
+        )
+        ssl_checker.check.return_value = ssl_valid
+
+        with caplog.at_level(logging.WARNING):
+            alerts = await use_case.execute()
+
+        assert len(alerts) == 1
+        assert alerts[0].alert_type == AlertType.HTTP_DOWN
+        warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+        assert any("https://example.com" in r.getMessage() for r in warnings)
+        assert not [r for r in caplog.records if r.levelno >= logging.ERROR]
+        alert_repo.save.assert_awaited_once()
 
     async def test_ssl_expiry_alert(self, use_case, mocks):
         _, _, _alert_repo, http_checker, ssl_checker = mocks

@@ -14,6 +14,8 @@ class Settings:
         self.db_password: str = os.getenv("DB_PASSWORD", "healthchecker")
         self.db_name: str = os.getenv("DB_NAME", "healthchecker")
         self.check_interval_sec: int = int(os.getenv("CHECK_INTERVAL_SEC", "60"))
+        self.check_max_attempts: int = int(os.getenv("CHECK_MAX_ATTEMPTS", "2"))
+        self.check_retry_delay: float = float(os.getenv("CHECK_RETRY_DELAY", "2.0"))
         self.default_alert_days: int = int(os.getenv("DEFAULT_ALERT_DAYS", "7"))
         self.retention_days: int = int(os.getenv("RETENTION_DAYS", "7"))
         self.stats_default_days: int = int(os.getenv("STATS_DEFAULT_DAYS", "7"))

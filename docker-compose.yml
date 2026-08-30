@@ -34,6 +34,8 @@ services:
       DB_PASSWORD: healthchecker
       DB_NAME: healthchecker
       CHECK_INTERVAL_SEC: "60"
+      CHECK_MAX_ATTEMPTS: "2"
+      CHECK_RETRY_DELAY: "2.0"
       DEFAULT_ALERT_DAYS: "7"
       RETENTION_DAYS: "7"
       LOG_LEVEL: "INFO"

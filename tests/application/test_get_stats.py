@@ -1,9 +1,13 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from healthchecker.application.use_cases.get_stats import GetStatsUseCase
 from healthchecker.domain.models.health_check import HealthCheck
+from healthchecker.domain.services.degradation_service import (
+    DegradationDetector,
+    DegradationReason,
+)
 from healthchecker.infrastructure.config import settings
 
 
@@ -85,3 +89,39 @@ class TestGetStatsUseCase:
             1, limit=settings.degradation_window_size
         )
         assert status.is_degraded is False
+
+    async def test_get_latest_map(self, use_case, mock_repo):
+        check = _check(datetime.now(UTC))
+        mock_repo.get_latest_by_url_ids.return_value = {1: check}
+
+        result = await use_case.get_latest_map([1, 2])
+
+        mock_repo.get_latest_by_url_ids.assert_awaited_once_with([1, 2])
+        assert result == {1: check}
+
+    async def test_get_status_map_runs_detector_per_url(self, mock_repo):
+        now = datetime.now(UTC)
+        history = [_check(now - timedelta(minutes=i), ttfb_ms=2000.0) for i in range(5)]
+        history += [
+            _check(now - timedelta(minutes=5 + i), ttfb_ms=50.0) for i in range(10)
+        ]
+        mock_repo.get_recent_by_url_ids.return_value = {1: [_check(now)], 2: history}
+        use_case = GetStatsUseCase(
+            mock_repo, degradation_detector=DegradationDetector()
+        )
+
+        result = await use_case.get_status_map([1, 2])
+
+        mock_repo.get_recent_by_url_ids.assert_awaited_once_with(
+            [1, 2], limit=settings.degradation_window_size
+        )
+        assert result[1].is_degraded is False
+        assert result[2].is_degraded is True
+        assert result[2].reason == DegradationReason.TTFB_INCREASE
+
+    async def test_get_status_map_empty(self, use_case, mock_repo):
+        mock_repo.get_recent_by_url_ids.return_value = {}
+
+        result = await use_case.get_status_map([1])
+
+        assert result == {}

@@ -48,7 +48,10 @@ async def main():
     alert_repo = TortoiseAlertRepository()
     summary_repo = TortoiseDailySummaryRepository()
 
-    http_checker = HttpHealthChecker()
+    http_checker = HttpHealthChecker(
+        max_attempts=settings.check_max_attempts,
+        retry_delay=settings.check_retry_delay,
+    )
     ssl_checker = SslChecker()
 
     manage_urls = ManageUrlsUseCase(url_repo)

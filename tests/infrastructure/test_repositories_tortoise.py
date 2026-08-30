@@ -57,6 +57,22 @@ async def sample_url(url_repo):
     )
 
 
+def make_check(url_id: int, checked_at: datetime, **overrides) -> HealthCheck:
+    params = {
+        "id": None,
+        "url_id": url_id,
+        "http_status": 200,
+        "ttfb_ms": 10.0,
+        "ssl_expiration_date": None,
+        "ssl_days_remaining": None,
+        "is_healthy": True,
+        "error_message": None,
+        "checked_at": checked_at,
+    }
+    params.update(overrides)
+    return HealthCheck(**params)
+
+
 class TestTortoiseUrlRepository:
     async def test_add_and_get_by_id(self, url_repo):
         url = await url_repo.add(Url.create("https://test.com", name="Test"))
@@ -140,6 +156,65 @@ class TestTortoiseHealthCheckRepository:
             )
         results = await hc_repo.get_by_url_id(sample_url.id, limit=3)
         assert len(results) == 3
+
+    async def test_get_latest_by_url_ids(self, hc_repo, url_repo, sample_url):
+        other = await url_repo.add(Url.create("https://other.com", name="Other"))
+        now = datetime.now(UTC)
+        older = now - timedelta(hours=2)
+        newer = now - timedelta(hours=1)
+        await hc_repo.save(make_check(sample_url.id, older))
+        await hc_repo.save(make_check(sample_url.id, newer))
+        await hc_repo.save(make_check(other.id, now - timedelta(minutes=30)))
+
+        latest = await hc_repo.get_latest_by_url_ids([sample_url.id, other.id])
+
+        assert latest[sample_url.id].checked_at == newer
+        assert latest[other.id].checked_at == now - timedelta(minutes=30)
+
+    async def test_get_latest_by_url_ids_breaks_ties_by_id(self, hc_repo, sample_url):
+        now = datetime.now(UTC)
+        first = await hc_repo.save(make_check(sample_url.id, now))
+        second = await hc_repo.save(make_check(sample_url.id, now))
+
+        latest = await hc_repo.get_latest_by_url_ids([sample_url.id])
+
+        assert latest[sample_url.id].id == second.id
+        assert latest[sample_url.id].id != first.id
+
+    async def test_get_latest_by_url_ids_skips_url_without_checks(
+        self, hc_repo, url_repo, sample_url
+    ):
+        empty = await url_repo.add(Url.create("https://empty.com", name="Empty"))
+        await hc_repo.save(make_check(sample_url.id, datetime.now(UTC)))
+
+        latest = await hc_repo.get_latest_by_url_ids([sample_url.id, empty.id])
+
+        assert sample_url.id in latest
+        assert empty.id not in latest
+
+    async def test_get_recent_by_url_ids_limits_per_url(
+        self, hc_repo, url_repo, sample_url
+    ):
+        other = await url_repo.add(Url.create("https://other.com", name="Other"))
+        now = datetime.now(UTC)
+        for i in range(7):
+            await hc_repo.save(
+                make_check(sample_url.id, now - timedelta(minutes=10 - i))
+            )
+        for i in range(2):
+            await hc_repo.save(make_check(other.id, now - timedelta(minutes=10 - i)))
+
+        recent = await hc_repo.get_recent_by_url_ids([sample_url.id, other.id], limit=3)
+
+        assert len(recent[sample_url.id]) == 3
+        assert len(recent[other.id]) == 2
+        kept = [c.checked_at for c in recent[sample_url.id]]
+        assert kept == sorted(kept)
+        assert all(c > now - timedelta(minutes=10) for c in kept)
+
+    async def test_batch_methods_with_empty_ids(self, hc_repo):
+        assert await hc_repo.get_latest_by_url_ids([]) == {}
+        assert await hc_repo.get_recent_by_url_ids([], limit=5) == {}
 
     async def test_purge_older_than(self, hc_repo, sample_url):
         old = datetime(2025, 1, 1, tzinfo=UTC)

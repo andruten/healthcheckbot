@@ -66,3 +66,32 @@ class TestSslChecker:
         assert record.levelno == logging.WARNING
         assert record.exc_info is None
         assert "Network error checking SSL" in record.message
+
+    @pytest.mark.parametrize(
+        "teardown_error",
+        [
+            ssl.SSLError(1, "application data after close notify"),
+            OSError("Connection reset by peer"),
+        ],
+    )
+    async def test_teardown_error_after_cert_still_returns_info(
+        self, checker, mocker, caplog, teardown_error
+    ):
+        writer = mocker.MagicMock()
+        writer.get_extra_info.return_value.getpeercert.return_value = {
+            "notAfter": "Sep 30 23:59:59 2099 GMT"
+        }
+        writer.wait_closed = mocker.AsyncMock(side_effect=teardown_error)
+        mocker.patch.object(
+            checker,
+            "_open_tls_connection",
+            return_value=(mocker.Mock(), writer),
+        )
+
+        with caplog.at_level(logging.WARNING):
+            info = await checker.check("https://github.com")
+
+        assert info is not None
+        assert info.expiration_date.year == 2099
+        assert info.days_remaining > 0
+        assert caplog.records == []

@@ -163,8 +163,10 @@ class TestListUrlsHandler:
         manage_urls = mocker.AsyncMock()
         manage_urls.list_all.return_value = [url]
         get_results = mocker.AsyncMock()
-        get_results.get_latest.return_value = mock_check
-        get_results.get_status.return_value = DegradationStatus(is_degraded=False)
+        get_results.get_latest_map.return_value = {1: mock_check}
+        get_results.get_status_map.return_value = {
+            1: DegradationStatus(is_degraded=False)
+        }
         handler = ListUrlsHandler(manage_urls, get_results)
 
         update = mocker.AsyncMock()
@@ -202,8 +204,10 @@ class TestListUrlsHandler:
         manage_urls = mocker.AsyncMock()
         manage_urls.list_all.return_value = [url]
         get_results = mocker.AsyncMock()
-        get_results.get_latest.return_value = check
-        get_results.get_status.return_value = DegradationStatus(is_degraded=False)
+        get_results.get_latest_map.return_value = {1: check}
+        get_results.get_status_map.return_value = {
+            1: DegradationStatus(is_degraded=False)
+        }
         handler = ListUrlsHandler(manage_urls, get_results)
 
         update = mocker.AsyncMock()
@@ -226,7 +230,8 @@ class TestListUrlsHandler:
         manage_urls = mocker.AsyncMock()
         manage_urls.list_all.return_value = [url]
         get_results = mocker.AsyncMock()
-        get_results.get_latest.return_value = None
+        get_results.get_latest_map.return_value = {}
+        get_results.get_status_map.return_value = {}
         handler = ListUrlsHandler(manage_urls, get_results)
 
         update = mocker.AsyncMock()
@@ -258,8 +263,10 @@ class TestListUrlsHandler:
         manage_urls = mocker.AsyncMock()
         manage_urls.list_all.return_value = [url]
         get_results = mocker.AsyncMock()
-        get_results.get_latest.return_value = check
-        get_results.get_status.return_value = DegradationStatus(is_degraded=False)
+        get_results.get_latest_map.return_value = {1: check}
+        get_results.get_status_map.return_value = {
+            1: DegradationStatus(is_degraded=False)
+        }
         handler = ListUrlsHandler(manage_urls, get_results)
 
         update = mocker.AsyncMock()
@@ -291,13 +298,15 @@ class TestListUrlsHandler:
         manage_urls = mocker.AsyncMock()
         manage_urls.list_all.return_value = [url]
         get_results = mocker.AsyncMock()
-        get_results.get_latest.return_value = check
-        get_results.get_status.return_value = DegradationStatus(
-            is_degraded=True,
-            reason=DegradationReason.TTFB_INCREASE,
-            baseline_ttfb_ms=100.0,
-            current_ttfb_ms=2000.0,
-        )
+        get_results.get_latest_map.return_value = {1: check}
+        get_results.get_status_map.return_value = {
+            1: DegradationStatus(
+                is_degraded=True,
+                reason=DegradationReason.TTFB_INCREASE,
+                baseline_ttfb_ms=100.0,
+                current_ttfb_ms=2000.0,
+            )
+        }
         handler = ListUrlsHandler(manage_urls, get_results)
 
         update = mocker.AsyncMock()
@@ -306,3 +315,29 @@ class TestListUrlsHandler:
 
         text = update.message.reply_text.call_args[0][0]
         assert "⚠️ *Degraded*" in text
+
+    async def test_handler_batches_queries_for_all_urls(self, mocker, mock_check):
+        urls = []
+        for i in (1, 2, 3):
+            url = mocker.Mock()
+            url.id = i
+            url.name = f"Example {i}"
+            url.url = f"https://example{i}.com"
+            url.alert_before_days = 30
+            urls.append(url)
+
+        manage_urls = mocker.AsyncMock()
+        manage_urls.list_all.return_value = urls
+        get_results = mocker.AsyncMock()
+        get_results.get_latest_map.return_value = {1: mock_check}
+        get_results.get_status_map.return_value = {}
+        handler = ListUrlsHandler(manage_urls, get_results)
+
+        update = mocker.AsyncMock()
+        context = mocker.AsyncMock()
+        await handler.handle(update, context)
+
+        get_results.get_latest_map.assert_awaited_once_with([1, 2, 3])
+        get_results.get_status_map.assert_awaited_once_with([1, 2, 3])
+        text = update.message.reply_text.call_args[0][0]
+        assert "⏳ Not checked yet" in text

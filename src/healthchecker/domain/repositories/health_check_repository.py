@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from datetime import date, datetime
 
 from healthchecker.domain.models.health_check import HealthCheck
@@ -15,6 +16,16 @@ class HealthCheckRepository(ABC):
 
     @abstractmethod
     async def get_latest_by_url_id(self, url_id: int) -> HealthCheck | None: ...
+
+    @abstractmethod
+    async def get_latest_by_url_ids(
+        self, url_ids: Sequence[int]
+    ) -> dict[int, HealthCheck]: ...
+
+    @abstractmethod
+    async def get_recent_by_url_ids(
+        self, url_ids: Sequence[int], limit: int = 10
+    ) -> dict[int, list[HealthCheck]]: ...
 
     @abstractmethod
     async def get_since(self, url_id: int, since: datetime) -> list[HealthCheck]: ...
