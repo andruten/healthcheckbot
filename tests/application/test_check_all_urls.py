@@ -389,3 +389,95 @@ class TestCheckAllUrlsUseCase:
         assert first_alerts == []
         assert second_alerts == []
         assert url_repo.get_all_active.await_count == 2
+
+
+class TestPureTlsUrls:
+    @pytest.fixture
+    def imap_url(self):
+        return Url(
+            id=1,
+            name="Mail",
+            url="imaps://mail.example.com",
+            alert_before_days=30,
+            is_active=True,
+            created_at=None,
+            updated_at=None,
+        )
+
+    @pytest.fixture
+    def ssl_valid(self):
+        return SslInfo(
+            expiration_date=datetime(2026, 12, 31, tzinfo=UTC),
+            days_remaining=200,
+        )
+
+    @pytest.fixture
+    def mocks(self, mocker, imap_url):
+        url_repo = mocker.AsyncMock()
+        url_repo.get_all_active.return_value = [imap_url]
+        health_repo = mocker.AsyncMock()
+        health_repo.get_by_url_id.return_value = []
+        alert_repo = mocker.AsyncMock()
+        http_checker = mocker.AsyncMock()
+        ssl_checker = mocker.AsyncMock()
+        return url_repo, health_repo, alert_repo, http_checker, ssl_checker
+
+    @pytest.fixture
+    def use_case(self, mocks):
+        url_repo, health_repo, alert_repo, http_checker, ssl_checker = mocks
+        return CheckAllUrlsUseCase(
+            url_repo=url_repo,
+            health_check_repo=health_repo,
+            alert_repo=alert_repo,
+            http_checker=http_checker,
+            ssl_checker=ssl_checker,
+            degradation_enabled=False,
+        )
+
+    async def test_pure_tls_skips_http_check_and_is_healthy(
+        self, use_case, mocks, ssl_valid
+    ):
+        _, _, _, http_checker, ssl_checker = mocks
+        ssl_checker.check.return_value = ssl_valid
+
+        alerts = await use_case.execute()
+
+        http_checker.check.assert_not_awaited()
+        ssl_checker.check.assert_awaited_once()
+        assert alerts == []
+
+    async def test_pure_tls_failure_is_unhealthy_and_alerts(
+        self, use_case, mocks, ssl_valid
+    ):
+        _, _, alert_repo, http_checker, ssl_checker = mocks
+        ssl_checker.check.return_value = None
+
+        alerts = await use_case.execute()
+
+        http_checker.check.assert_not_awaited()
+        assert len(alerts) == 1
+        assert alerts[0].alert_type == AlertType.HTTP_DOWN
+        alert_repo.save.assert_awaited_once()
+
+    async def test_pure_tls_bare_host_port_skips_http_check(
+        self, use_case, mocks, ssl_valid
+    ):
+        url_repo, _, _, http_checker, ssl_checker = mocks
+        url_repo.get_all_active.return_value[0].url = "mail.example.com:993"
+        ssl_checker.check.return_value = ssl_valid
+
+        alerts = await use_case.execute()
+
+        http_checker.check.assert_not_awaited()
+        assert alerts == []
+
+    async def test_https_url_still_runs_http_check(self, use_case, mocks, ssl_valid):
+        url_repo, _, _, http_checker, ssl_checker = mocks
+        url_repo.get_all_active.return_value[0].url = "https://mail.example.com"
+        http_checker.check.return_value = HTTP_OK
+        ssl_checker.check.return_value = ssl_valid
+
+        alerts = await use_case.execute()
+
+        http_checker.check.assert_awaited_once()
+        assert alerts == []

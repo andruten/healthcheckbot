@@ -69,28 +69,37 @@ class CheckAllUrlsUseCase:
             )
             previous_check = history[0] if history else None
 
-            http_result = await self._http_checker.check(url.url)
-
             ssl_info = None
-            if url.url.startswith("https"):
+            if SslChecker.is_tls_url(url.url):
                 ssl_info = await self._ssl_checker.check(url.url)
-
             ssl_expiry = ssl_info.expiration_date if ssl_info else None
             ssl_days = ssl_info.days_remaining if ssl_info else None
-            is_healthy = http_result.error is None and (
-                http_result.status_code is not None
-                and 200 <= http_result.status_code < 400
-            )
+
+            if SslChecker.is_pure_tls_url(url.url):
+                http_result = None
+                status_code = None
+                ttfb_ms = None
+                error_message = None if ssl_info else "TLS connection failed"
+                is_healthy = ssl_info is not None
+            else:
+                http_result = await self._http_checker.check(url.url)
+                status_code = http_result.status_code
+                ttfb_ms = http_result.ttfb_ms
+                error_message = http_result.error
+                is_healthy = http_result.error is None and (
+                    http_result.status_code is not None
+                    and 200 <= http_result.status_code < 400
+                )
 
             check = HealthCheck(
                 id=None,
                 url_id=url.id,
-                http_status=http_result.status_code,
-                ttfb_ms=http_result.ttfb_ms,
+                http_status=status_code,
+                ttfb_ms=ttfb_ms,
                 ssl_expiration_date=ssl_expiry,
                 ssl_days_remaining=ssl_days,
                 is_healthy=is_healthy,
-                error_message=http_result.error,
+                error_message=error_message,
                 checked_at=datetime.now(UTC),
             )
 
@@ -141,8 +150,8 @@ class CheckAllUrlsUseCase:
                     alert = HealthCheckService.build_http_down_alert(
                         url.id,
                         url.name,
-                        http_result.status_code,
-                        http_result.error,
+                        status_code,
+                        error_message,
                     )
                     await self._alert_repo.save(alert)
                     alerts.append(alert)
@@ -154,8 +163,8 @@ class CheckAllUrlsUseCase:
                     alert = HealthCheckService.build_http_up_alert(
                         url.id,
                         url.name,
-                        http_result.status_code,
-                        http_result.ttfb_ms,
+                        status_code,
+                        ttfb_ms,
                     )
                     await self._alert_repo.save(alert)
                     alerts.append(alert)

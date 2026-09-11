@@ -18,7 +18,10 @@ class AddUrlHandler:
         if not context.args:
             await update.message.reply_text(
                 "Usage: /add <url> [name] [--alert-days N]\n"
-                "Example: /add https://example.com MySite --alert-days 14"
+                "Examples:\n"
+                "/add https://example.com MySite --alert-days 14\n"
+                "/add imaps://mail.example.com MyMail\n"
+                "/add mail.example.com:993 MyMail"
             )
             return
 
@@ -42,7 +45,8 @@ class AddUrlHandler:
 
         if not url or not self._is_valid_url(url):
             await update.message.reply_text(
-                "Invalid URL. Please provide a valid HTTP or HTTPS URL."
+                "Invalid URL. Please provide a valid HTTP/HTTPS URL, a TLS URL "
+                "(imaps://, pop3s://, smtps://, ftps://, ldaps://) or host:port."
             )
             return
 
@@ -63,5 +67,10 @@ class AddUrlHandler:
 
     @staticmethod
     def _is_valid_url(url: str) -> bool:
-        pattern = r"^https?://[^\s/$.?#].[^\s]*$"
-        return bool(re.match(pattern, url))
+        tls_schemes = r"https?|imaps|pop3s|smtps|ftps|ldaps"
+        with_scheme = rf"^({tls_schemes})://[^\s/$.?#].[^\s]*$"
+        host_port = r"^([^\s/:?#]+\.[^\s/:?#]+):(\d{1,5})$"
+        if re.match(with_scheme, url):
+            return True
+        match = re.match(host_port, url)
+        return bool(match and 1 <= int(match.group(2)) <= 65535)
